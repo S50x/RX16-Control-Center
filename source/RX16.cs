@@ -22,8 +22,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Battery, sensors and power modes for the ACEMAGIC RX16")]
 [assembly: AssemblyCompany("RX16")]
 [assembly: AssemblyCopyright("RX16")]
-[assembly: AssemblyVersion("1.4.3.0")]
-[assembly: AssemblyFileVersion("1.4.3.0")]
+[assembly: AssemblyVersion("1.4.4.0")]
+[assembly: AssemblyFileVersion("1.4.4.0")]
 
 static class RX16
 {
@@ -126,6 +126,7 @@ static class RX16
 
             StartService();
             BuildTray();
+            StartTrayPin();
             new Thread(WaitOpenLoop) { IsBackground = true }.Start();
             if (!background)
                 new Thread(() => { for (int i = 0; i < 60 && !Ping(); i++) Thread.Sleep(250); ShowWindow(); }) { IsBackground = true }.Start();
@@ -202,6 +203,37 @@ static class RX16
     static ToolStripItem miOpen, miRestart, miQuit;
 
     static string T(string ar, string en) { return lang == "en" ? en : ar; }
+
+    // Windows 11 puts new tray icons in the hidden (^) area. Pin ours next to the clock the first time only:
+    // Windows records each icon under HKCU\Control Panel\NotifyIconSettings\<id> (ExecutablePath, IsPromoted).
+    // If IsPromoted already exists the user has chosen (pinned or hidden it) - leave it alone.
+    static void StartTrayPin()
+    {
+        int tries = 0;
+        var t = new System.Windows.Forms.Timer { Interval = 5000 };
+        t.Tick += (s, e) =>
+        {
+            tries++;
+            bool done = false;
+            try
+            {
+                using (var root = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Control Panel\NotifyIconSettings"))
+                    if (root != null)
+                        foreach (var name in root.GetSubKeyNames())
+                            using (var k = root.OpenSubKey(name, true))
+                            {
+                                var path = k == null ? null : k.GetValue("ExecutablePath") as string;
+                                if (path == null || !string.Equals(Path.GetFullPath(path), Path.GetFullPath(Application.ExecutablePath),
+                                                                   StringComparison.OrdinalIgnoreCase)) continue;
+                                if (k.GetValue("IsPromoted") == null) k.SetValue("IsPromoted", 1, Microsoft.Win32.RegistryValueKind.DWord);
+                                done = true;
+                            }
+            }
+            catch { }
+            if (done || tries >= 24) { t.Stop(); t.Dispose(); }   // entry appears a few seconds after the icon; give up after 2 min
+        };
+        t.Start();
+    }
 
     static void BuildTray()
     {
