@@ -20,13 +20,13 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("RX16 Control Center")]
 [assembly: AssemblyCompany("RX16")]
 [assembly: AssemblyCopyright("RX16")]
-[assembly: AssemblyVersion("1.4.5.0")]
-[assembly: AssemblyFileVersion("1.4.5.0")]
+[assembly: AssemblyVersion("1.4.6.0")]
+[assembly: AssemblyFileVersion("1.4.6.0")]
 
 static class App
 {
     public const string Name = "RX16 Control Center";
-    public const string Version = "1.4.5";
+    public const string Version = "1.4.6";
     public const string Publisher = "RX16";
     public const string ExeName = "RX16 Control Center.exe";
     public const string TaskName = "RX16 Control Center";

@@ -24,7 +24,7 @@ sys.dont_write_bytecode = True   # keep the app folder clean (no __pycache__)
 
 # Versioning rule (owner's request): every update adds 1 to the LAST digit; after 9 it rolls over
 # to the next digit, e.g. 1.3.8 -> 1.3.9 -> 1.4.0 ... 1.9.9 -> 2.0.0
-VERSION = "1.4.5"
+VERSION = "1.4.6"
 HOST, PORT = "127.0.0.1", 47816
 BASE = os.path.dirname(os.path.abspath(__file__))
 CFG_DIR = os.path.join(os.environ.get("APPDATA", BASE), "X16Power")
@@ -423,15 +423,21 @@ def battery_history(root, design):
     entries = root.findall(".//{*}History/{*}HistoryEntry")
     if not entries:
         return {}
-    energy = dc_h = ac_h = cs_dc_h = active_dc_energy = 0.0
+    energy = dc_h = ac_h = cs_dc_h = active_dc_energy = excluded_h = 0.0
     months = {}
     for e in entries:
         a_e, c_e = float(e.get("ActiveDcEnergy") or 0), float(e.get("CsDcEnergy") or 0)
         energy += a_e + c_e
-        active_dc_energy += a_e
-        dch = iso_hours(e.get("ActiveDcTime"))
+        dch_raw, csh_raw = iso_hours(e.get("ActiveDcTime")), iso_hours(e.get("CsDcTime"))
+        # Windows sometimes logs hours without the matching energy (seen here: 60 h on battery = 5 Wh,
+        # and 24 h/day "standby" with 0 Wh while the laptop was off). Keep the energy, drop those hours.
+        dch = 0.0 if dch_raw > 2 and a_e / 1000 / dch_raw < 1.5 else dch_raw
+        csh = 0.0 if csh_raw > 6 and c_e == 0 else csh_raw
+        excluded_h += (dch_raw - dch) + (csh_raw - csh)
+        if dch:
+            active_dc_energy += a_e
         dc_h += dch
-        cs_dc_h += iso_hours(e.get("CsDcTime"))
+        cs_dc_h += csh
         ac_h += iso_hours(e.get("ActiveAcTime"))
         # an entry can span several months (Windows merges old days): split it by time overlap
         s = datetime.fromisoformat(e.get("LocalStartDate"))
@@ -468,7 +474,101 @@ def battery_history(root, design):
         # Li-ion also ages with time (~5 years typical), whatever the cycle count
         "calendar_years_left": round(max(0.0, 5 - age_days / 365), 1),
         "capacity_static": len(caps) == 1, "months": [months[k] for k in sorted(months)][-12:],
+        "design": design, "history_wh": round(energy / 1000, 1), "excluded_hours": round(excluded_h, 1),
+        "history_end": (entries[-1].get("LocalEndDate") or "")[:13],   # last local hour Windows has logged
     }
+
+
+# ---------------------------------------------------------------- our own drain counter
+DRAIN_FILE = os.path.join(CFG_DIR, "battery_drain.json")
+
+
+class DrainLog:
+    """Energy taken out of the battery and time spent on battery, measured by us every 3 s and kept per
+    local hour. Windows only adds a day to its battery history after the day ends, and some of its
+    records are wrong, so this keeps the cycle count live and honest."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.hours, self.last_rem, self.last_t, self.saved = {}, None, None, 0.0
+        try:
+            with open(DRAIN_FILE, encoding="utf-8") as f:
+                d = json.load(f)
+            self.hours = {k: list(v) for k, v in d.get("hours", {}).items()}
+            self.last_rem = d.get("last_remaining")
+        except (OSError, ValueError):
+            pass
+
+    def feed(self, s):
+        rem, full, now = s.get("remaining") or 0, s.get("full") or 0, time.time()
+        if not rem or not full:
+            return
+        key = time.strftime("%Y-%m-%dT%H", time.localtime(now))
+        with self.lock:
+            b = self.hours.setdefault(key, [0, 0])           # [mWh drained, seconds on battery]
+            if self.last_rem is not None and rem < self.last_rem and s.get("charge", 0) <= 0:
+                drop = self.last_rem - rem
+                # first sample after a restart covers the time we were off: only trust small drops
+                if drop < full * (0.6 if self.last_t else 0.2):
+                    b[0] += drop
+            if self.last_t and not s.get("online"):
+                b[1] += min(now - self.last_t, 30)           # sleep gaps don't count as use
+            self.last_rem, self.last_t = rem, now
+            if now - self.saved > 60:
+                self._save()
+                self.saved = now
+
+    def _save(self):
+        cutoff = time.strftime("%Y-%m-%dT%H", time.localtime(time.time() - 400 * 86400))
+        self.hours = {k: v for k, v in self.hours.items() if k >= cutoff}
+        try:
+            os.makedirs(CFG_DIR, exist_ok=True)
+            tmp = DRAIN_FILE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"hours": self.hours, "last_remaining": self.last_rem}, f)
+            os.replace(tmp, DRAIN_FILE)
+        except OSError:
+            pass
+
+    def after(self, hour_key):
+        """{month: [mWh, s]} for every hour later than hour_key ('YYYY-MM-DDTHH')."""
+        out = {}
+        with self.lock:
+            for k, (mwh, secs) in self.hours.items():
+                if k > hour_key:
+                    m = out.setdefault(k[:7], [0, 0])
+                    m[0] += mwh
+                    m[1] += secs
+        return out
+
+
+DRAIN = DrainLog()
+
+
+def health_now():
+    """Windows' history (sanitised) + our live counter for everything after Windows' last logged hour."""
+    with state_lock:
+        h = dict(state["health"] or {})
+    if not h.get("design") or "history_end" not in h:
+        return h or None
+    live = DRAIN.after(h["history_end"])
+    live_mwh = sum(v[0] for v in live.values())
+    live_s = sum(v[1] for v in live.values())
+    energy = h["history_wh"] * 1000 + live_mwh
+    cycles = energy / h["design"]
+    per_month = cycles / max(h["age_days"] / 30.4, 1)
+    h.update({
+        "cycles_est": round(cycles, 1), "drained_wh": round(energy / 1000, 1), "live_wh": round(live_mwh / 1000, 1),
+        "dc_hours": round(h["dc_hours"] + live_s / 3600, 1), "cycles_per_month": round(per_month, 2),
+        "years_left": round((h["rated_cycles"] - cycles) / per_month / 12, 1) if per_month > 0 else None,
+    })
+    months = {m["m"]: dict(m) for m in h.get("months", [])}
+    for mon, (mwh, secs) in live.items():
+        m = months.setdefault(mon, {"m": mon, "dc": 0.0, "ac": 0.0, "wh": 0.0})
+        m["wh"] += mwh / 1000
+        m["dc"] += secs / 3600
+    h["months"] = [months[k] for k in sorted(months)][-12:]
+    return h
 
 
 PROCS_WANTED_UNTIL = 0.0          # the "running apps" page asks for the process list; otherwise skip it
@@ -513,6 +613,7 @@ def monitor_loop():
         if want != effective:
             apply_preset(want)
         battery_alerts(s, alerts)
+        DRAIN.feed(s)
         procs_wake.wait(3)
         procs_wake.clear()
 
@@ -626,6 +727,7 @@ class Handler(BaseHTTPRequestHandler):
             with open(os.path.join(BASE, "ui", "index.html"), "rb") as f:
                 return self._send(200, f.read(), "text/html; charset=utf-8")
         if self.path.startswith("/api/state"):
+            health = health_now()
             want_power()                     # window is open and visible (it only polls then)
             if "procs=1" in self.path:      # running-apps page is open: start/keep the process list
                 want_procs()
@@ -633,7 +735,7 @@ class Handler(BaseHTTPRequestHandler):
                 s = state["sample"]
                 body = {
                     "sample": s, "percent": percent(s), "history": state["history"],
-                    "health": state["health"], "effective": state["effective"],
+                    "health": health, "effective": state["effective"],
                     "mode": config["mode"], "config": config, "error": state["error"],
                     "startup": startup_enabled(), "presets": PRESETS,
                     "hw": state["hw"], "hw_hist": state["hw_hist"], "admin": is_admin(),

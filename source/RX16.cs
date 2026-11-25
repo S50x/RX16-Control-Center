@@ -22,8 +22,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Battery, sensors and power modes for the ACEMAGIC RX16")]
 [assembly: AssemblyCompany("RX16")]
 [assembly: AssemblyCopyright("RX16")]
-[assembly: AssemblyVersion("1.4.5.0")]
-[assembly: AssemblyFileVersion("1.4.5.0")]
+[assembly: AssemblyVersion("1.4.6.0")]
+[assembly: AssemblyFileVersion("1.4.6.0")]
 
 static class RX16
 {

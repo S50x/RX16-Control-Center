@@ -388,7 +388,7 @@ select{background:var(--panel2);color:var(--text);border:1px solid var(--line2);
             <div class="legend"><span><i style="background:var(--red)"></i>على البطارية</span><span><i style="background:#3a3f4a"></i>على الشاحن</span></div></div>
           <div class="card"><h3>من سجل ويندوز</h3><div class="kv" id="lifeKv"></div></div>
         </div>
-        <div class="note info" style="margin-top:14px" id="lifeNote">البطارية نفسها ما تسجّل عدد الدورات (تعطي 0 دايماً)، فالبرنامج يحسبها من سجل ويندوز: إجمالي الطاقة المسحوبة من البطارية ÷ سعتها (50.8Wh). كل شحنة كاملة مستهلكة = دورة، حتى لو كانت على شكل شحنات جزئية.</div>
+        <div class="note info" style="margin-top:14px" id="lifeNote">البطارية نفسها ما تسجّل عدد الدورات (تعطي 0 دايماً)، فالبرنامج يحسبها: إجمالي الطاقة المسحوبة من البطارية ÷ سعتها (50.8Wh). الأيام اللي قبل اليوم من سجل ويندوز، واليوم يقيسه البرنامج بنفسه كل 3 ثواني. والفترات اللي سجّلها ويندوز بأرقام مستحيلة (ساعات بدون طاقة) مستبعدة من الساعات.</div>
 
         <div class="section-title">الشحن</div>
         <div class="grid" style="grid-template-columns:repeat(3,1fr)">
@@ -551,7 +551,7 @@ const EN = {
   "معلومات البطارية":"Battery info","عمر البطارية ودورات الشحن":"Battery lifespan & charge cycles","دورات الشحن":"Charge cycles","عمر البطارية":"Battery age",
   "مدة الشحنة الكاملة":"Full-charge runtime","العمر المتبقي المتوقع":"Expected life left","الاستخدام الشهري":"Monthly usage",
   "ساعات على البطارية والشاحن":"Hours on battery and charger","على البطارية":"On battery","على الشاحن":"On charger","من سجل ويندوز":"From Windows history",
-  "البطارية نفسها ما تسجّل عدد الدورات (تعطي 0 دايماً)، فالبرنامج يحسبها من سجل ويندوز: إجمالي الطاقة المسحوبة من البطارية ÷ سعتها (50.8Wh). كل شحنة كاملة مستهلكة = دورة، حتى لو كانت على شكل شحنات جزئية.":"The battery doesn't report its cycle count (always 0), so the app calculates it from Windows history: total energy drained ÷ capacity (50.8Wh). Every full charge used = one cycle, even if spread over partial charges.",
+  "البطارية نفسها ما تسجّل عدد الدورات (تعطي 0 دايماً)، فالبرنامج يحسبها: إجمالي الطاقة المسحوبة من البطارية ÷ سعتها (50.8Wh). الأيام اللي قبل اليوم من سجل ويندوز، واليوم يقيسه البرنامج بنفسه كل 3 ثواني. والفترات اللي سجّلها ويندوز بأرقام مستحيلة (ساعات بدون طاقة) مستبعدة من الساعات.":"The battery doesn't report its cycle count (always 0), so the app calculates it: total energy drained ÷ capacity (50.8Wh). Past days come from Windows history; today is measured by the app itself every 3 seconds. Periods Windows logged with impossible numbers (hours without energy) are left out of the hours.",
   "ملاحظة: البطارية تبلّغ عن نفس السعة (100%) من أول يوم، فقراءة الصحة ممكن ما تعكس التآكل الحقيقي. عدد الدورات والعمر أدق مقياس هنا.":"Note: the battery has reported the same capacity (100%) since day one, so the health reading may not reflect real wear. Cycle count and age are the more accurate measures here.",
   "الشحن":"Charging","الحالة":"Status","قدرة الشحن الآن":"Charging power now","نوع الشحن الحالي":"Current charging type","الشحن السريع / العادي:":"Fast / normal charging:",
   "فحصت الجهاز ولا يوجد في الـ BIOS أو تعريفات ACEMAGIC واجهة تسمح لبرنامج بتغيير سرعة الشحن أو حد الشحن (مثل 80%). سرعة الشحن يحددها الشاحن نفسه: شاحن USB-C PD بقدرة 65W أو أعلى يعطي أسرع شحن. البرنامج يعرض لك نوع الشحن الفعلي حسب الواط اللي يدخل.":"Neither the BIOS nor ACEMAGIC's drivers expose a way for software to change charging speed or set a charge limit (like 80%). Charging speed is set by the charger: a 65W+ USB-C PD charger gives the fastest charge. The app shows the actual charging type from the incoming watts.",
@@ -594,7 +594,7 @@ const EN = {
   "أفضل كفاءة طاقة":"Best power efficiency","متوازن":"Balanced","أفضل أداء":"Best performance","مطفأ":"Off","قوي (Aggressive)":"Aggressive",
   "سنة":"1 year","شهر":"1 month","تقدير ويندوز":"Windows estimate","يحدّه عمر الليثيوم الزمني (~5 سنوات)":"Limited by lithium calendar aging (~5 years)",
   "إجمالي الطاقة المسحوبة":"Total energy drained","ساعات الاستخدام على البطارية":"Hours used on battery","ساعات الاستخدام على الشاحن":"Hours used on charger",
-  "ساعات السكون على البطارية":"Hours asleep on battery","مدة السكون بالشحنة الكاملة":"Standby time on a full charge","الدورات تكفي حسب استخدامك":"Cycles last at your usage",
+  "ساعات السكون على البطارية":"Hours asleep on battery","مدة السكون بالشحنة الكاملة":"Standby time on a full charge","الدورات تكفي حسب استخدامك":"Cycles last at your usage","قاسه البرنامج بعد آخر سجل لويندوز":"Measured by the app since Windows' last log","ساعات مستبعدة من سجل ويندوز":"Hours left out of Windows history",
   "التردد":"Clock","الواط":"Power","المستخدم":"Used","النسبة":"Percent","البطارية":"Battery","الطاقة":"Power","الوضع الحالي":"Current mode","حد الواط":"Power limit",
   "استهلاك الشريحة":"Chip power","أخرى":"Other","الساعة":"Clock time","اختر قراءة وحدة على الأقل":"Pick at least one reading",
   "مقفولة: الماوس يعدّي من خلالها":"Locked: mouse clicks pass through","تقدر تسحبها بالماوس الحين":"You can drag it with the mouse now",
@@ -623,6 +623,7 @@ const PAT = [
   [/^· (\d+) دورة$/, (m,n) => `· ${n} cycles`],
   [/^أول استخدام: (.+)$/, (m,d) => `First use: ${d}`],
   [/^متوسط استهلاكك ([\d.]+)W على البطارية$/, (m,w) => `Your average draw on battery: ${w}W`],
+  [/^حسب متوسط استهلاكك ([\d.]+)W على البطارية$/, (m,w) => `Based on your average draw on battery: ${w}W`],
   [/^حسب (\d+) دورة لين 80%$/, (m,n) => `Based on ${n} cycles to 80%`],
   [/^متكيّف ← (.+)$/, (m,x) => `Adaptive → ${trWord(x)}`],
   [/^يعمل الآن كـ: (.+)$/, (m,x) => `Running as: ${trWord(x)}`],
@@ -927,9 +928,9 @@ function renderLife(h){
   $("cycSub").textContent = `~${h.cycles_per_month} دورة بالشهر`;
   $("age").textContent = ageText(h.age_days);
   $("ageSub").textContent = "أول استخدام: " + h.first_use;
-  const runtime = h.runtime_win_h || (h.avg_dc_w ? h.full/1000/h.avg_dc_w : null);
+  const runtime = h.avg_dc_w ? h.full/1000/h.avg_dc_w : h.runtime_win_h;   // measured average first (Windows' own estimate uses its faulty records)
   $("runFull").textContent = dur(runtime);
-  $("runSub").textContent = h.avg_dc_w ? `متوسط استهلاكك ${h.avg_dc_w}W على البطارية` : "تقدير ويندوز";
+  $("runSub").textContent = h.avg_dc_w ? `حسب متوسط استهلاكك ${h.avg_dc_w}W على البطارية` : "تقدير ويندوز";
   const left = Math.min(h.years_left ?? 99, h.calendar_years_left ?? 99);
   const lt = +left.toFixed(1), ltxt = Number.isInteger(lt) ? lt : lt.toFixed(1);
   $("lifeLeft").textContent = left >= 99 ? "--" : `~${ltxt} ${lt >= 3 && lt <= 10 ? "سنوات" : "سنة"}`;
@@ -942,6 +943,8 @@ function renderLife(h){
     ["ساعات السكون على البطارية", `${Math.round(h.standby_dc_hours)} ساعة`],
     ["مدة السكون بالشحنة الكاملة", h.standby_win_h ? `${Math.round(h.standby_win_h/24)} يوم` : "--"],
     ["الدورات تكفي حسب استخدامك", h.years_left != null ? `${Math.round(h.years_left)} سنة` : "--"],
+    ["قاسه البرنامج بعد آخر سجل لويندوز", h.live_wh != null ? `${h.live_wh} Wh` : "--"],
+    ["ساعات مستبعدة من سجل ويندوز", h.excluded_hours != null ? `${Math.round(h.excluded_hours)} ساعة` : "--"],
   ];
   $("lifeKv").innerHTML = kv.map(([k,v]) => `<span>${k}</span><b dir="${/[؀-ۿ]/.test(v) ? "rtl" : "ltr"}" style="text-align:left">${esc(v)}</b>`).join("");
   const note = $("lifeNote");
