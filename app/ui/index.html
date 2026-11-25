@@ -269,6 +269,7 @@ select{background:var(--panel2);color:var(--text);border:1px solid var(--line2);
       </div>
       <div class="grow"></div>
       <div class="pill" id="pwrPill"><span class="dot" id="pwrDot"></span><span id="pwrTxt">…</span></div>
+      <button class="pill" id="updPill" style="display:none;border-color:rgba(47,208,122,.45);color:#2fd07a;cursor:pointer" onclick="document.querySelector('[data-p=set]').click()">⬆ <span id="updPillT">تحديث متوفر</span></button>
       <div class="pill warn" id="adminPill" style="display:none" title="شغّل «تفعيل صلاحيات المدير.bat» مرة وحدة">⚠ بدون صلاحيات مدير</div>
       <div class="pill"><span class="dot r"></span><span id="modePill">…</span></div>
       <button class="iconbtn" id="langBtn" title="Language / اللغة" style="font-weight:700;font-size:13px" onclick="setLang(LANG === 'en' ? 'ar' : 'en')">EN</button>
@@ -510,7 +511,9 @@ select{background:var(--panel2);color:var(--text);border:1px solid var(--line2);
         <div class="card" style="margin-top:16px">
           <h3>البرنامج</h3>
           <div class="row"><div class="t"><b>يشتغل مع تشغيل ويندوز</b><span>يشتغل بالخلفية بدون نافذة عشان الوضع المتكيّف يبقى شغّال.</span></div><button class="switch" id="startSw"></button></div>
-          <div class="row"><div class="t"><b>الإصدار <span class="num" id="ver">--</span></b><span id="verSub">إعادة التشغيل تطبّق أي تحديث جديد على ملفات البرنامج.</span></div><button class="btn" id="restartBtn">إعادة تشغيل</button></div>
+          <div class="row"><div class="t"><b>الإصدار <span class="num" id="ver">--</span></b><span id="updSub">التحديثات من GitHub: البرنامج يتحقق كل 6 ساعات.</span></div><button class="btn" id="updCheck">تحقق من التحديثات</button></div>
+          <div class="row" id="updRow" style="display:none"><div class="t"><b id="updTitle">--</b><span id="updNotes" style="white-space:pre-line"></span></div><button class="btn red" id="updGo">تحديث الحين</button></div>
+          <div class="row"><div class="t"><b>إعادة تشغيل البرنامج</b><span>لو صار شي غريب، إعادة التشغيل تبدأه من جديد.</span></div><button class="btn" id="restartBtn">إعادة تشغيل</button></div>
           <div class="row"><div class="t"><b>إيقاف البرنامج</b><span>إغلاق النافذة يخليه شغّال بالخلفية. هذا الزر يوقفه كلياً.</span></div><button class="btn red" id="quit2">إيقاف</button></div>
         </div>
         <div class="card" style="margin-top:16px">
@@ -581,6 +584,13 @@ const EN = {
   "إيقاف البرنامج":"Quit app","إغلاق النافذة يخليه شغّال بالخلفية. هذا الزر يوقفه كلياً.":"Closing the window keeps it running in the background. This button quits it completely.",
   "إيقاف":"Quit","وش يغيّر كل وضع":"What each mode changes",
   "لغة البرنامج والشاشة العائمة والإشعارات وأيقونة الشريط.":"Language for the app, overlay, notifications and tray icon.",
+  "تحديث متوفر":"Update available","تحقق من التحديثات":"Check for updates","تحديث الحين":"Update now","إعادة تشغيل البرنامج":"Restart app",
+  "لو صار شي غريب، إعادة التشغيل تبدأه من جديد.":"If something looks off, restarting starts it fresh.",
+  "التحديثات من GitHub: البرنامج يتحقق كل 6 ساعات.":"Updates come from GitHub: the app checks every 6 hours.",
+  "التحديثات التلقائية مو مفعّلة في هالنسخة.":"Automatic updates aren't enabled in this build.","جاري التحقق…":"Checking…",
+  "جاري التنزيل…":"Downloading…","جاري التثبيت…":"Installing…","الحين":"just now","تحديث":"Update",
+  "البرنامج بينزّل التحديث ويتأكد منه، وبعدها يقفل ويرجع يفتح بالإصدار الجديد. إعداداتك بتبقى مثل ما هي.":"The app downloads and verifies the update, then closes and reopens on the new version. Your settings stay as they are.",
+  "جاري تنزيل التحديث…":"Downloading the update…","ما قدرت أبدأ التحديث":"Couldn't start the update",
   "إنهاء":"End","إلغاء":"Cancel","اللغة":"Language",
   "يختار الأنسب تلقائياً حسب الشاحن ونسبة البطارية":"Picks the best mode automatically based on charger and battery level",
   "أطول عمر للبطارية، المعالج محدود 60% بدون Boost":"Longest battery life, CPU capped at 60% without Boost",
@@ -635,6 +645,14 @@ const PAT = [
   [/^تم إنهاء (.+)$/, (m,n) => `Ended ${n}`],
   [/^ما قدرت أنهي (.+) \(يمكن يحتاج صلاحيات مدير\)$/, (m,n) => `Couldn't end ${n} (may need admin rights)`],
   [/^الإشعار عند (\d+)%$/, (m,n) => `Notify at ${n}%`],
+  [/^تحديث (\d[\d.]*)$/, (m,v) => `Update ${v}`],
+  [/^تحديث إلى (.+)؟$/, (m,v) => `Update to ${v}?`],
+  [/^الإصدار (\S+) متوفر(.*)$/, (m,v,r) => `Version ${v} available${r}`],
+  [/^قبل (\d+) دقيقة$/, (m,n) => `${n} min ago`],
+  [/^قبل (\d+) ساعة$/, (m,n) => `${n} h ago`],
+  [/^آخر تحقق: (.+)$/, (m,t) => `Last checked: ${trWord(t)}`],
+  [/^عندك آخر إصدار · آخر تحقق: (.+)$/, (m,t) => `You're up to date · last checked: ${trWord(t)}`],
+  [/^ما قدرت أتحقق: (.+)$/, (m,e) => `Couldn't check: ${e}`],
   [/^حد (.+): (\d+)W$/, (m,x,w) => `${trWord(x)} limit: ${w}W`],
   [/^تم التحويل إلى وضع (.+)$/, (m,x) => `Switched to ${trWord(x)} mode`],
   [/^(.+) ([▾▴])$/, (m,x,a) => `${trWord(x)} ${a}`],
@@ -796,6 +814,7 @@ function render(){
   $("modePill").textContent = S.mode === "adaptive" ? `متكيّف ← ${NAMES[S.effective]||"…"}` : NAMES[S.mode];
 
   $("adminPill").style.display = S.admin ? "none" : "flex";
+  renderUpdPill();
 
   // modes
   document.querySelectorAll(".mode").forEach(b => b.classList.toggle("on", b.dataset.k === S.mode));
@@ -895,6 +914,7 @@ function render(){
     if (document.activeElement !== $("lowR")) { $("lowR").value = c.adaptive_low ?? 40; $("lowV").textContent = ($("lowR").value) + "%"; }
     $("startSw").classList.toggle("on", !!S.startup);
     $("ver").textContent = S.version || "--";
+    renderUpdate();
     $("chAlertSw").classList.toggle("on", c.charge_alert !== false);
     if (document.activeElement !== $("chAlertR")) { $("chAlertR").value = c.charge_alert_pct ?? 80; $("chAlertV").textContent = $("chAlertR").value + "%"; }
     $("chAlertR").disabled = c.charge_alert === false;
@@ -970,6 +990,32 @@ function monthBars(canvas, months){
     c.fillStyle = "#8a919e"; c.textAlign = "center"; c.fillText(m.m.slice(5) + "/" + m.m.slice(2,4), x + bw/2, hgt-6);
   });
 }
+
+/* ---------- updates (GitHub Releases) ---------- */
+function ago(ts){ if (!ts) return "--"; const m = Math.round((Date.now()/1000 - ts)/60); return m < 1 ? "الحين" : m < 60 ? `قبل ${m} دقيقة` : `قبل ${Math.round(m/60)} ساعة`; }
+function renderUpdate(){
+  const u = S.update || {};
+  if (!u.repo) { $("updSub").textContent = "التحديثات التلقائية مو مفعّلة في هالنسخة."; $("updCheck").disabled = true; $("updRow").style.display = "none"; return; }
+  $("updCheck").disabled = u.status === "checking" || u.status === "downloading" || u.status === "installing";
+  $("updSub").textContent = u.status === "checking" ? "جاري التحقق…"
+    : u.error ? "ما قدرت أتحقق: " + u.error
+    : u.available ? "آخر تحقق: " + ago(u.checked_at)
+    : u.checked_at ? "عندك آخر إصدار · آخر تحقق: " + ago(u.checked_at) : "التحديثات من GitHub: البرنامج يتحقق كل 6 ساعات.";
+  $("updRow").style.display = u.available ? "flex" : "none";
+  if (u.available) {
+    $("updTitle").textContent = `الإصدار ${u.latest} متوفر` + (u.size ? ` · ${(u.size/1048576).toFixed(1)} MB` : "");
+    $("updNotes").textContent = (u.notes || "").replace(/SHA256[:\s]+[0-9a-fA-F]{64}/g, "").trim().slice(0, 600);
+    $("updGo").disabled = u.status !== "idle";
+    $("updGo").textContent = u.status === "downloading" ? "جاري التنزيل…" : u.status === "installing" ? "جاري التثبيت…" : "تحديث الحين";
+  }
+}
+function renderUpdPill(){ const u = S.update || {}; $("updPill").style.display = u.available ? "flex" : "none"; if (u.available) $("updPillT").textContent = `تحديث ${u.latest}`; }
+$("updCheck").onclick = async () => { S.update = {...(S.update||{}), status:"checking"}; renderUpdate(); S.update = await post("/api/update/check", {}); renderUpdate(); renderUpdPill(); };
+$("updGo").onclick = async () => {
+  if (!await confirmBox(`تحديث إلى ${S.update.latest}؟`, "البرنامج بينزّل التحديث ويتأكد منه، وبعدها يقفل ويرجع يفتح بالإصدار الجديد. إعداداتك بتبقى مثل ما هي.", "تحديث")) return;
+  const r = await post("/api/update/install", {});
+  toast(r.ok ? "جاري تنزيل التحديث…" : "ما قدرت أبدأ التحديث"); refresh();
+};
 
 /* ---------- overlay page ---------- */
 const OV_GROUPS = {

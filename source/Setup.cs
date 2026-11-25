@@ -20,13 +20,13 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("RX16 Control Center")]
 [assembly: AssemblyCompany("RX16")]
 [assembly: AssemblyCopyright("RX16")]
-[assembly: AssemblyVersion("1.4.6.0")]
-[assembly: AssemblyFileVersion("1.4.6.0")]
+[assembly: AssemblyVersion("1.4.7.0")]
+[assembly: AssemblyFileVersion("1.4.7.0")]
 
 static class App
 {
     public const string Name = "RX16 Control Center";
-    public const string Version = "1.4.6";
+    public const string Version = "1.4.7";
     public const string Publisher = "RX16";
     public const string ExeName = "RX16 Control Center.exe";
     public const string TaskName = "RX16 Control Center";
@@ -41,7 +41,9 @@ static class App
     {
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        if (args.Any(a => a.Equals("/uninstall", StringComparison.OrdinalIgnoreCase)))
+        if (args.Any(a => a.Equals("/update", StringComparison.OrdinalIgnoreCase)))
+            Application.Run(new UpdateForm());
+        else if (args.Any(a => a.Equals("/uninstall", StringComparison.OrdinalIgnoreCase)))
             Application.Run(new UninstallForm(args.Any(a => a.Equals("/quiet", StringComparison.OrdinalIgnoreCase))));
         else
             Application.Run(new Wizard());
@@ -541,6 +543,92 @@ class Wizard : Form
                 Go(5);
             }));
         }) { IsBackground = true }.Start();
+    }
+}
+
+// ============================================================================ silent update (/update)
+// Started by the running app (already admin) after it downloaded and SHA-256-checked this setup.
+// No wizard: replace the files in the existing install, keep the user's choices, start the app again.
+class UpdateForm : Form
+{
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr h, int a, ref int v, int s);
+    protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); int on = 1; DwmSetWindowAttribute(Handle, 20, ref on, 4); }
+
+    readonly Label status;
+
+    public UpdateForm()
+    {
+        Text = App.Name;
+        RightToLeft = RightToLeft.Yes; RightToLeftLayout = true;
+        FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = MinimizeBox = false; ControlBox = false;
+        StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(460, 150); TopMost = true;
+        BackColor = App.Bg; Font = Ui.F(10f); AutoScaleMode = AutoScaleMode.Dpi;
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        var logo = new PictureBox { Image = Ui.Logo(40), SizeMode = PictureBoxSizeMode.AutoSize, Location = new Point(22, 24) };
+        var title = Ui.L("جاري تحديث " + App.Name + " إلى " + App.Version, 12f, App.Text, FontStyle.Bold); title.SetBounds(76, 22, 370, 28);
+        status = Ui.L("جاري التحضير…", 10f, App.Muted); status.SetBounds(76, 56, 370, 24);
+        var bar = new ProgressBar { Style = ProgressBarStyle.Marquee, MarqueeAnimationSpeed = 25 }; bar.SetBounds(22, 100, 416, 16);
+        Controls.AddRange(new Control[] { logo, title, status, bar });
+        Shown += (s, e) => new Thread(Run) { IsBackground = true }.Start();
+    }
+
+    void Say(string s) { BeginInvoke(new Action(() => status.Text = s)); }
+
+    static string Cmd(string exe, string args)
+    {
+        try
+        {
+            var p = Process.Start(new ProcessStartInfo(exe, args) { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true });
+            string o = p.StandardOutput.ReadToEnd(); p.WaitForExit(30000); return o;
+        }
+        catch { return ""; }
+    }
+
+    void Run()
+    {
+        string dir = App.InstalledDir() ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), App.Name);
+        string err = null;
+        try
+        {
+            // remember the user's startup choices before touching the task
+            string xml = Cmd("schtasks.exe", "/Query /TN \"" + App.TaskName + "\" /XML");
+            bool hadTask = xml.Contains("<Task");
+            var m = System.Text.RegularExpressions.Regex.Match(xml, @"<LogonTrigger>.*?<Enabled>(\w+)</Enabled>", System.Text.RegularExpressions.RegexOptions.Singleline);
+            bool atLogon = !m.Success || m.Groups[1].Value != "false";
+            var st = System.Text.RegularExpressions.Regex.Match(xml, @"<Settings>.*?<Enabled>(\w+)</Enabled>", System.Text.RegularExpressions.RegexOptions.Singleline);
+            bool taskDisabled = st.Success && st.Groups[1].Value == "false";
+
+            Say("إيقاف البرنامج…"); Work.StopRunningApp();
+            Say("تحديث الملفات…"); Work.Extract(dir, (pct, name) => { });
+            Work.CopyUninstaller(dir);
+            Work.RegisterUninstall(dir, Work.PayloadSize());
+            if (hadTask) { Work.RegisterTask(dir, atLogon); if (taskDisabled) Cmd("schtasks.exe", "/Change /TN \"" + App.TaskName + "\" /DISABLE"); }
+            else Work.RegisterTask(dir, true);
+            Say("تشغيل البرنامج…");
+            bool started = !taskDisabled && Cmd("schtasks.exe", "/Run /TN \"" + App.TaskName + "\"").IndexOf("SUCCESS", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!started) Process.Start(new ProcessStartInfo(Path.Combine(dir, App.ExeName), "--background") { WorkingDirectory = dir });
+            // reopen the window the user had when they pressed "update now"
+            for (int i = 0; i < 60; i++)
+            {
+                try
+                {
+                    var rq = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:47816/api/ping"); rq.Timeout = 1000; rq.Proxy = null;
+                    using (rq.GetResponse()) { }
+                    Process.Start(new ProcessStartInfo(Path.Combine(dir, App.ExeName)) { WorkingDirectory = dir });   // asks the running app to show its window
+                    break;
+                }
+                catch { Thread.Sleep(500); }
+            }
+        }
+        catch (Exception ex) { err = ex.Message; }
+        BeginInvoke(new Action(() =>
+        {
+            if (err != null)
+                MessageBox.Show(this, "ما اكتمل التحديث:\n" + err + "\n\nشغّل ملف التثبيت يدوياً من GitHub.", Text, MessageBoxButtons.OK,
+                    MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign);
+            else { status.Text = "تم التحديث."; Thread.Sleep(800); }
+            Close();
+        }));
     }
 }
 

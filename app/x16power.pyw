@@ -24,7 +24,7 @@ sys.dont_write_bytecode = True   # keep the app folder clean (no __pycache__)
 
 # Versioning rule (owner's request): every update adds 1 to the LAST digit; after 9 it rolls over
 # to the next digit, e.g. 1.3.8 -> 1.3.9 -> 1.4.0 ... 1.9.9 -> 2.0.0
-VERSION = "1.4.6"
+VERSION = "1.4.7"
 HOST, PORT = "127.0.0.1", 47816
 BASE = os.path.dirname(os.path.abspath(__file__))
 CFG_DIR = os.path.join(os.environ.get("APPDATA", BASE), "X16Power")
@@ -81,6 +81,7 @@ PM_TABLE_VERSION = "4c0009"                  # Hawk Point layout verified on thi
 PM_CORE_POWER = [0x0804 + 4 * i for i in range(8)]   # per-core power, W
 PM_PPT_FAST_VALUE = 0x000C                   # whole-chip power, W
 POWER_WANTED_UNTIL = 0.0
+UPDATER = None                     # GitHub Releases updater (see updater.py)
 OPEN_EVENT = threading.Event()     # "open the window" request for the exe host (see /api/wait-open)
 
 
@@ -741,6 +742,7 @@ class Handler(BaseHTTPRequestHandler):
                     "hw": state["hw"], "hw_hist": state["hw_hist"], "admin": is_admin(),
                     "ryzen": state["ryzen"], "ryzenadj": os.path.exists(RYZENADJ),
                     "pm_ms": (state.get("pm") or {}).get("ms"),
+                    "update": UPDATER.state() if UPDATER else None,
                     "tdp_range": [TDP_MIN, TDP_MAX, TDP_FACTORY],
                     "version": VERSION, "overlay_fields": OVERLAY_FIELDS, "ryzen_last": state.get("ryzen_last"), "hosted": "--no-tray" in sys.argv,
                 }
@@ -797,6 +799,12 @@ class Handler(BaseHTTPRequestHandler):
             r = subprocess.run(args, creationflags=NO_WINDOW, capture_output=True,
                                text=True, encoding="oem", errors="replace")
             return self._send(200, {"ok": r.returncode == 0, "msg": (r.stdout or r.stderr).strip()})
+
+        if self.path == "/api/update/check":
+            return self._send(200, UPDATER.check() if UPDATER else {"error": "no updater"})
+
+        if self.path == "/api/update/install":
+            return self._send(200, {"ok": bool(UPDATER and UPDATER.install())})
 
         if self.path == "/api/tdp":
             if "enabled" in data:
@@ -1041,6 +1049,13 @@ def main():
     threading.Thread(target=sensor_loop, daemon=True).start()
     threading.Thread(target=tdp_loop, daemon=True).start()
     threading.Thread(target=pm_loop, daemon=True).start()
+    global UPDATER
+    try:
+        from updater import Updater
+        UPDATER = Updater(BASE, VERSION, notify, tr)
+        threading.Thread(target=UPDATER.loop, daemon=True).start()
+    except Exception:
+        UPDATER = None
     global TRAY
     if "--no-tray" in sys.argv:        # the exe host shows the tray icon + notifications
         server.serve_forever()
