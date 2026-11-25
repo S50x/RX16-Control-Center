@@ -1,0 +1,4 @@
+python315.zip
+.
+..
+# no "import site": isolated, ignores any Python installed on the PC

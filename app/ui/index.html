@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RX16 Control Center</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ed1c24'/%3E%3Cpath d='M9 22V10h7a4 4 0 0 1 0 8h-2l5 4' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0b0c0f; --bg2:#111317; --panel:#16181d; --panel2:#1c1f25; --line:#262a32; --line2:#323743;
+  --text:#eef0f4; --muted:#8a919e; --dim:#5d6470;
+  --red:#ed1c24; --red2:#ff3b42; --redglow:rgba(237,28,36,.35);
+  --green:#2fd07a; --amber:#ffb020; --blue:#3aa0ff; --cyan:#22d3ee;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI Variable Text","Segoe UI",Tahoma,sans-serif;font-size:14px;overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none}
+.num{font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#2a2e37;border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- app shell ---------- */
+.app{display:grid;grid-template-columns:232px 1fr;height:100vh}
+.side{background:linear-gradient(180deg,#121419,#0d0e12);border-left:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px}
+.brand{display:flex;align-items:center;gap:12px;padding:4px 8px 20px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--red2),#a50d13);display:grid;place-items:center;box-shadow:0 6px 20px var(--redglow);font-weight:800;font-size:15px;letter-spacing:.5px;direction:ltr}
+.brand b{display:block;font-size:17px;letter-spacing:.5px;direction:ltr;text-align:right}
+.brand small{color:var(--muted);font-size:11.5px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:var(--muted);text-align:right;transition:.15s;position:relative}
+.nav button svg{width:19px;height:19px;flex:none}
+.nav button:hover{background:#1a1d23;color:var(--text)}
+.nav button.on{background:linear-gradient(90deg,transparent,rgba(237,28,36,.16));color:#fff}
+.nav button.on::before{content:"";position:absolute;right:-14px;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--red);box-shadow:0 0 12px var(--red)}
+.side .foot{margin-top:auto;padding:12px 8px 0;border-top:1px solid var(--line);color:var(--dim);font-size:11.5px;line-height:1.7}
+.chipline{display:flex;align-items:center;gap:6px;direction:ltr;justify-content:flex-end}
+.ryzen{display:inline-block;padding:1px 6px;border:1px solid #3a3f4a;border-radius:4px;font-size:10px;letter-spacing:1px;color:#c9ced8}
+
+.main{display:flex;flex-direction:column;min-width:0;height:100vh}
+.top{display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1px solid var(--line);background:rgba(11,12,15,.8);backdrop-filter:blur(8px)}
+.top h1{font-size:19px;font-weight:600}
+.top .sub{color:var(--muted);font-size:12.5px}
+.top .grow{flex:1}
+.pill{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12.5px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.g{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.a{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.dot.r{background:var(--red);box-shadow:0 0 8px var(--red)}
+.iconbtn{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+.iconbtn:hover{color:#fff;border-color:var(--red)}
+.content{flex:1;overflow:auto;padding:22px 26px 30px}
+.page{display:none;animation:fade .25s ease}
+.page.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+
+/* ---------- cards ---------- */
+.grid{display:grid;gap:16px}
+.card{background:linear-gradient(180deg,var(--panel),#14161a);border:1px solid var(--line);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden}
+.card h3{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.2px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h3 .tag{margin-inline-start:auto;font-weight:500;color:var(--dim);font-size:11.5px}
+.section-title{font-size:15px;font-weight:600;margin:26px 2px 12px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* battery hero */
+.hero{display:grid;grid-template-columns:260px 1fr;gap:22px;align-items:center}
+.ring{position:relative;width:240px;height:240px;margin:auto}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .pct{font-size:54px;font-weight:300;line-height:1}
+.ring .pct small{font-size:22px;color:var(--muted)}
+.ring .st{margin-top:8px;font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.ring .bolt{color:var(--green)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat .k{color:var(--muted);font-size:12px;margin-bottom:6px}
+.stat .v{font-size:22px;font-weight:600}
+.stat .v small{font-size:12px;color:var(--muted);font-weight:500;margin-inline-start:3px}
+
+/* modes */
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.mode{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:16px 14px;text-align:right;transition:.18s;position:relative;overflow:hidden}
+.mode:hover{border-color:var(--line2);transform:translateY(-2px)}
+.mode .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:#22262e;margin-bottom:12px;color:var(--muted);transition:.18s}
+.mode .ic svg{width:22px;height:22px}
+.mode b{display:block;font-size:15px;margin-bottom:4px}
+.mode span{color:var(--muted);font-size:12px;line-height:1.55;display:block}
+.mode.on{border-color:var(--red);background:linear-gradient(160deg,rgba(237,28,36,.18),var(--panel2) 60%);box-shadow:0 0 0 1px var(--red) inset,0 10px 30px -12px var(--redglow)}
+.mode.on .ic{background:var(--red);color:#fff;box-shadow:0 4px 14px var(--redglow)}
+.mode .now{position:absolute;top:12px;left:12px;font-size:10.5px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);color:#ddd;display:none}
+.mode.on .now{display:block}
+.mode .eff{margin-top:10px;font-size:11.5px;color:var(--amber);display:none}
+.mode.on .eff{display:block}
+.mode .watt{margin-top:10px;display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:999px;background:#262a32;color:#c9ced8}
+.mode.on .watt{background:rgba(237,28,36,.2);color:#fff}
+.pill.warn{border-color:rgba(255,176,32,.4);color:var(--amber)}
+.tdprow{display:grid;grid-template-columns:110px 1fr 60px;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.tdprow:last-child{border-bottom:0}
+.tdprow input[type=range]{width:100%}
+.tdprow b{font-weight:500}
+.ticks{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;direction:ltr;margin-top:4px}
+
+/* gauges */
+.gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.gauge{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 12px 12px;text-align:center}
+.gauge .lbl{color:var(--muted);font-size:12px;margin-bottom:2px}
+.gauge svg{width:100%;max-width:170px;height:auto;display:block;margin:0 auto}
+.gauge .val{font-size:26px;font-weight:600;margin-top:-34px}
+.gauge .val small{font-size:13px;color:var(--muted);font-weight:500}
+.gauge .sub2{color:var(--dim);font-size:11.5px;margin-top:4px;min-height:16px}
+
+/* metric rows */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+.metric .k{color:var(--muted);font-size:12px;display:flex;justify-content:space-between}
+.metric .v{font-size:20px;font-weight:600;margin-top:5px}
+.metric .v small{font-size:12px;color:var(--muted);font-weight:500;margin-inline-start:3px}
+.bar{height:5px;border-radius:5px;background:#252931;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,var(--red),var(--red2));transition:width .6s ease}
+.bar.g i{background:linear-gradient(90deg,#16a34a,var(--green))}
+.bar.b i{background:linear-gradient(90deg,#1d6fd6,var(--blue))}
+
+/* charts */
+.chart{width:100%;height:190px;display:block}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-inline-end:6px;vertical-align:middle}
+
+/* processes */
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.search{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 12px;height:38px}
+.search input{flex:1;background:none;border:0;outline:0;color:var(--text);font:inherit}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{padding:6px 14px;border-radius:7px;color:var(--muted);font-size:12.5px}
+.seg button.on{background:#2a2e37;color:#fff}
+table{width:100%;border-collapse:collapse}
+th{text-align:right;color:var(--dim);font-weight:500;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);cursor:pointer;white-space:nowrap}
+th.sorted{color:var(--text)}
+td{padding:9px 12px;border-bottom:1px solid #1d2026;vertical-align:middle}
+tr:hover td{background:#1a1d23}
+.pname{display:flex;align-items:center;gap:10px;min-width:0}
+.pic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:12px;flex:none;color:#fff;direction:ltr}
+.pname b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
+.pname small{color:var(--dim);font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px;direction:ltr;text-align:right}
+.impact{font-size:11.5px;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.impact.h{background:rgba(237,28,36,.15);color:#ff6a6f}
+.impact.m{background:rgba(255,176,32,.13);color:var(--amber)}
+.impact.l{background:rgba(47,208,122,.1);color:var(--green)}
+.kind{font-size:11.5px;color:var(--muted)}
+.btn{padding:7px 14px;border-radius:9px;background:#23262e;border:1px solid var(--line2);font-size:12.5px;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--red);color:#fff}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+.btn.red:hover{background:var(--red2)}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.tablewrap{max-height:calc(100vh - 300px);overflow:auto;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+
+/* settings */
+.row{display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .t{flex:1}
+.row .t b{display:block;font-weight:500;margin-bottom:3px}
+.row .t span{color:var(--muted);font-size:12.5px;line-height:1.6}
+.switch{width:44px;height:24px;border-radius:999px;background:#2c3039;position:relative;transition:.2s;flex:none}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#cfd3da;transition:.2s}
+.switch.on{background:var(--red)}
+.switch.on::after{right:23px;background:#fff}
+input[type=range]{-webkit-appearance:none;width:220px;height:5px;border-radius:5px;background:#2c3039;outline:0;direction:ltr}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px rgba(237,28,36,.2);cursor:pointer}
+select{background:var(--panel2);color:var(--text);border:1px solid var(--line2);border-radius:9px;padding:7px 12px;font:inherit;outline:0}
+.note{background:rgba(255,176,32,.07);border:1px solid rgba(255,176,32,.25);color:#e9c98a;border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.7}
+.note.info{background:rgba(58,160,255,.07);border-color:rgba(58,160,255,.25);color:#a9cdf5}
+.kv{display:grid;grid-template-columns:1fr auto;gap:10px 16px;font-size:13px}
+.kv span{color:var(--muted)}
+.kv b{font-weight:500;text-align:left}
+
+/* left-to-right (English) */
+[dir=ltr] body{font-family:"Segoe UI Variable Text","Segoe UI",sans-serif}
+[dir=ltr] .nav button,[dir=ltr] .mode,[dir=ltr] th{text-align:left}
+[dir=ltr] .nav button.on::before{right:auto;left:-14px}
+[dir=ltr] .switch::after{right:auto;left:3px}
+[dir=ltr] .switch.on::after{left:23px}
+[dir=ltr] .mode .now{left:auto;right:12px}
+[dir=ltr] .brand b{text-align:left}
+[dir=ltr] .chipline{justify-content:flex-start}
+[dir=ltr] .pname small{text-align:left}
+[dir=ltr] .kv b{text-align:right!important}
+
+/* overlay page */
+.screen{position:relative;aspect-ratio:16/10;margin:14px;border-radius:12px;overflow:hidden;border:1px solid var(--line2);
+  background:radial-gradient(120% 90% at 70% 40%,#3a2a12 0%,#17130d 45%,#0a0a0c 100%)}
+.screen::after{content:"";position:absolute;inset:0;background:repeating-radial-gradient(circle at 65% 45%,rgba(255,200,90,.06) 0 2px,transparent 3px 22px)}
+.scr-bar{position:absolute;left:0;right:0;bottom:0;height:7%;background:rgba(20,22,27,.92);border-top:1px solid #2a2e37;z-index:1}
+.posgrid{position:absolute;inset:0 0 7% 0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;z-index:3}
+.posgrid button{border:1px dashed transparent;margin:6px;border-radius:8px;transition:.15s}
+.posgrid button:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.04)}
+.ov{position:absolute;z-index:2;display:flex;font-family:"Segoe UI",sans-serif;direction:ltr;transition:all .25s ease;pointer-events:none}
+.ov.v{flex-direction:column}
+.ov .tl{min-width:46px;padding:4px 8px;text-align:center;border-inline-start:1px solid var(--ovline)}
+.ov.v .tl{border-inline-start:0;border-top:1px solid var(--ovline)}
+.ov .tl:first-child{border:0}
+.ov .tv{font-size:15px;font-weight:600;line-height:1.15;direction:ltr;white-space:nowrap}
+.ov .tv small{font-size:8.5px;font-weight:400;margin-inline-start:1px}
+.ov .tlb{font-size:7.5px;white-space:nowrap;direction:rtl}
+.ck{display:flex;align-items:center;gap:10px;padding:9px 0;cursor:pointer;font-size:13.5px}
+.ck input{display:none}
+.ck span{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line2);display:grid;place-items:center;transition:.15s;flex:none}
+.ck input:checked+span{background:var(--red);border-color:var(--red)}
+.ck input:checked+span::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.colrow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;color:var(--muted);font-size:13px}
+.cpick{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:5px 10px;cursor:pointer}
+.cpick input{width:22px;height:22px;border:0;padding:0;background:none;cursor:pointer}
+.cpick b{font-weight:500;font-size:12.5px;color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:7px 12px;border-radius:999px;border:1px solid var(--line2);background:var(--panel2);color:var(--muted);font-size:12.5px;transition:.15s}
+.chip:hover{color:#fff}
+.chip.on{border-color:var(--red);background:rgba(237,28,36,.15);color:#fff}
+.gtitle{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-weight:600}
+.gtitle i{width:9px;height:9px;border-radius:3px;display:inline-block}
+
+/* modal + toast */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:20;backdrop-filter:blur(3px)}
+.modal.on{display:grid}
+.dialog{width:420px;background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.dialog h4{font-size:16px;margin-bottom:8px}
+.dialog p{color:var(--muted);line-height:1.7;margin-bottom:18px;font-size:13px}
+.dialog .acts{display:flex;gap:10px;justify-content:flex-start}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:#1f2228;border:1px solid var(--line2);padding:11px 18px;border-radius:12px;opacity:0;transition:.25s;z-index:30;font-size:13px;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:1100px){
+  .modes,.gauges,.metrics{grid-template-columns:repeat(2,1fr)}
+  .hero{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .content{padding:16px}
+  .top{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">RX</div>
+      <div><b>RX16</b><small>مركز التحكم</small></div>
+    </div>
+    <nav class="nav" id="nav">
+      <button data-p="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>الرئيسية</button>
+      <button data-p="perf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>الأداء والحساسات</button>
+      <button data-p="batt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/><path d="M11 9l-2 3h4l-2 3"/></svg>البطارية والشحن</button>
+      <button data-p="proc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 13h8M8 16h5"/></svg>البرامج الشغالة</button>
+      <button data-p="ovl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="14" rx="2"/><rect x="13" y="6.5" width="6" height="5" rx="1" fill="currentColor" stroke="none" opacity=".5"/><path d="M8 21h8M12 18v3"/></svg>الشاشة العائمة</button>
+      <button data-p="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>الإعدادات</button>
+    </nav>
+    <div class="foot">
+      <div class="chipline"><span>Ryzen 7 H 255</span><span class="ryzen">RYZEN</span></div>
+      <div class="chipline"><span>Radeon 780M</span><span class="ryzen">RADEON</span></div>
+      <div class="chipline"><span id="ramFoot">24GB DDR5</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div>
+        <h1 id="title">الرئيسية</h1>
+        <div class="sub">ACEMAGIC RX16 · AMD Ryzen™ 7 H 255 w/ Radeon™ 780M</div>
+      </div>
+      <div class="grow"></div>
+      <div class="pill" id="pwrPill"><span class="dot" id="pwrDot"></span><span id="pwrTxt">…</span></div>
+      <div class="pill warn" id="adminPill" style="display:none" title="شغّل «تفعيل صلاحيات المدير.bat» مرة وحدة">⚠ بدون صلاحيات مدير</div>
+      <div class="pill"><span class="dot r"></span><span id="modePill">…</span></div>
+      <button class="iconbtn" id="langBtn" title="Language / اللغة" style="font-weight:700;font-size:13px" onclick="setLang(LANG === 'en' ? 'ar' : 'en')">EN</button>
+      <button class="iconbtn" id="quitBtn" title="إيقاف البرنامج كلياً"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button>
+    </header>
+
+    <div class="content">
+      <!-- ================= HOME ================= -->
+      <section class="page on" id="p-home">
+        <div class="card">
+          <div class="hero">
+            <div class="ring">
+              <svg viewBox="0 0 200 200">
+                <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4a50"/><stop offset="1" stop-color="#b30f16"/></linearGradient></defs>
+                <circle cx="100" cy="100" r="86" fill="none" stroke="#22252c" stroke-width="12"/>
+                <circle id="ringArc" cx="100" cy="100" r="86" fill="none" stroke="url(#rg)" stroke-width="12" stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="540.35" style="transition:stroke-dashoffset .8s ease, stroke .3s"/>
+              </svg>
+              <div class="center">
+                <div class="pct num"><span id="pct">--</span><small>%</small></div>
+                <div class="st" id="battState">…</div>
+              </div>
+            </div>
+            <div>
+              <div class="stats">
+                <div class="stat"><div class="k" id="rateK">الاستهلاك الآن</div><div class="v num" id="rate">--<small>W</small></div></div>
+                <div class="stat"><div class="k" id="etaK">الوقت المتبقي</div><div class="v" id="eta" style="font-variant-numeric:tabular-nums">--</div></div>
+                <div class="stat"><div class="k">صحة البطارية</div><div class="v num" id="health">--<small>%</small></div></div>
+                <div class="stat"><div class="k">الطاقة المتبقية</div><div class="v num" id="wh">--<small>Wh</small></div></div>
+                <div class="stat"><div class="k">استهلاك المعالج (APU)</div><div class="v num" id="apuW">--<small>W</small></div></div>
+                <div class="stat"><div class="k">حد واط المعالج</div><div class="v num" id="tdpNow">--<small>W</small></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">وضع الطاقة</div>
+        <div class="modes" id="modes"></div>
+        <div class="note" id="modeErr" style="display:none;margin-top:12px"></div>
+
+        <div class="section-title">المراقبة المباشرة</div>
+        <div class="gauges">
+          <div class="gauge"><div class="lbl">حرارة المعالج</div><svg viewBox="0 0 200 120" id="g-ct"></svg><div class="val num"><span id="ct">--</span><small>°C</small></div><div class="sub2 num" id="ctSub"></div></div>
+          <div class="gauge"><div class="lbl">حرارة كرت الشاشة</div><svg viewBox="0 0 200 120" id="g-gt"></svg><div class="val num"><span id="gt">--</span><small>°C</small></div><div class="sub2 num" id="gtSub"></div></div>
+          <div class="gauge"><div class="lbl">ضغط المعالج</div><svg viewBox="0 0 200 120" id="g-cl"></svg><div class="val num"><span id="cl">--</span><small>%</small></div><div class="sub2 num" id="clSub"></div></div>
+          <div class="gauge"><div class="lbl">ضغط كرت الشاشة</div><svg viewBox="0 0 200 120" id="g-gl"></svg><div class="val num"><span id="gl">--</span><small>%</small></div><div class="sub2 num" id="glSub"></div></div>
+        </div>
+        <div class="metrics" style="margin-top:14px">
+          <div class="metric"><div class="k">تردد المعالج</div><div class="v num" id="cclk">--<small>MHz</small></div><div class="bar"><i id="cclkB"></i></div></div>
+          <div class="metric"><div class="k">تردد كرت الشاشة</div><div class="v num" id="gclk">--<small>MHz</small></div><div class="bar"><i id="gclkB"></i></div></div>
+          <div class="metric"><div class="k"><span>الرام المستخدمة</span><span class="num" id="ramPct"></span></div><div class="v num" id="ram">--<small>GB</small></div><div class="bar b"><i id="ramB"></i></div></div>
+          <div class="metric"><div class="k">تردد الرام</div><div class="v num" id="rclk">--<small>MT/s</small></div><div class="bar b"><i id="rclkB"></i></div></div>
+        </div>
+      </section>
+
+      <!-- ================= PERFORMANCE ================= -->
+      <section class="page" id="p-perf">
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="card"><h3>الحرارة<span class="tag">آخر 3 دقائق</span></h3><canvas class="chart" id="cTemp"></canvas>
+            <div class="legend"><span><i style="background:var(--red)"></i>المعالج</span><span><i style="background:var(--blue)"></i>كرت الشاشة</span></div></div>
+          <div class="card"><h3>الضغط<span class="tag">آخر 3 دقائق</span></h3><canvas class="chart" id="cLoad"></canvas>
+            <div class="legend"><span><i style="background:var(--red)"></i>المعالج</span><span><i style="background:var(--cyan)"></i>كرت الشاشة</span></div></div>
+        </div>
+        <div class="section-title">المعالج — AMD Ryzen 7 H 255</div>
+        <div class="metrics">
+          <div class="metric"><div class="k">الحرارة</div><div class="v num" id="d-ct">--<small>°C</small></div><div class="bar"><i id="d-ctB"></i></div></div>
+          <div class="metric"><div class="k">التردد الحالي</div><div class="v num" id="d-cclk">--<small>MHz</small></div><div class="bar"><i id="d-cclkB"></i></div></div>
+          <div class="metric"><div class="k">الضغط</div><div class="v num" id="d-cl">--<small>%</small></div><div class="bar"><i id="d-clB"></i></div></div>
+          <div class="metric"><div class="k">استهلاك الشريحة كاملة</div><div class="v num" id="d-apu">--<small>W</small></div><div class="bar"><i id="d-apuB"></i></div></div>
+        </div>
+        <div class="section-title">كرت الشاشة — AMD Radeon 780M</div>
+        <div class="metrics">
+          <div class="metric"><div class="k">الحرارة</div><div class="v num" id="d-gt">--<small>°C</small></div><div class="bar b"><i id="d-gtB"></i></div></div>
+          <div class="metric"><div class="k">التردد الحالي</div><div class="v num" id="d-gclk">--<small>MHz</small></div><div class="bar b"><i id="d-gclkB"></i></div></div>
+          <div class="metric"><div class="k">الضغط</div><div class="v num" id="d-gl">--<small>%</small></div><div class="bar b"><i id="d-glB"></i></div></div>
+          <div class="metric"><div class="k">استهلاك الكرت + SoC</div><div class="v num" id="d-gw">--<small>W</small></div><div class="bar b"><i id="d-gwB"></i></div></div>
+        </div>
+        <div class="section-title">الذاكرة والشريحة</div>
+        <div class="metrics">
+          <div class="metric"><div class="k">الرام المستخدمة</div><div class="v num" id="d-ram">--</div><div class="bar g"><i id="d-ramB"></i></div></div>
+          <div class="metric"><div class="k">سرعة الرام</div><div class="v num" id="d-rclk">--</div><div class="bar g"><i id="d-rclkB"></i></div></div>
+          <div class="metric"><div class="k">حرارة الشريحة (SoC)</div><div class="v num" id="d-st">--<small>°C</small></div><div class="bar g"><i id="d-stB"></i></div></div>
+          <div class="metric"><div class="k">تردد SoC</div><div class="v num" id="d-sclk">--<small>MHz</small></div><div class="bar g"><i id="d-sclkB"></i></div></div>
+        </div>
+        <div class="section-title">حدود الطاقة — RyzenAdj</div>
+        <div class="metrics">
+          <div class="metric"><div class="k">الاستهلاك المستمر (STAPM)</div><div class="v num" id="r-stv">--</div><div class="bar"><i id="r-stvB"></i></div></div>
+          <div class="metric"><div class="k">حد الدفعات القصيرة (PPT Fast)</div><div class="v num" id="r-fast">--</div><div class="bar"><i id="r-fastB"></i></div></div>
+          <div class="metric"><div class="k">حد الدفعات الطويلة (PPT Slow)</div><div class="v num" id="r-slow">--</div><div class="bar"><i id="r-slowB"></i></div></div>
+          <div class="metric"><div class="k">حد حرارة الأنوية (Tctl)</div><div class="v num" id="r-thm">--</div><div class="bar"><i id="r-thmB"></i></div></div>
+        </div>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:12px">
+          <div class="stat"><div class="k">TDP الرسمي من AMD</div><div class="v num">45<small>W</small></div><div class="k" style="margin:6px 0 0">مواصفات Ryzen 7 H 255 (اللي يعرضه NZXT)</div></div>
+          <div class="stat"><div class="k">المدى المسموح (cTDP)</div><div class="v num">35–54<small>W</small></div><div class="k" style="margin:6px 0 0">الشركات تختار رقم ضمن هذا المدى</div></div>
+          <div class="stat"><div class="k">حد ACEMAGIC الأصلي للجهاز</div><div class="v num">35<small>W</small></div><div class="k" style="margin:6px 0 0">الحد الفعلي المقروء من المعالج قبل أي تعديل</div></div>
+        </div>
+        <div class="note info" style="margin-top:16px">القراءات من تعريف AMD مباشرة (ADL) بدون صلاحيات مدير. الرام المتاحة لويندوز أقل من 24GB لأن جزءاً منها محجوز لكرت الشاشة المدمج 780M.</div>
+      </section>
+
+      <!-- ================= BATTERY ================= -->
+      <section class="page" id="p-batt">
+        <div class="grid" style="grid-template-columns:1.4fr 1fr">
+          <div class="card"><h3>مستوى الشحن<span class="tag">يُسجَّل كل 30 ثانية</span></h3><canvas class="chart" id="cBatt" style="height:220px"></canvas>
+            <div class="legend"><span><i style="background:var(--green)"></i>نسبة الشحن</span><span><i style="background:var(--amber)"></i>القدرة (واط)</span></div></div>
+          <div class="card"><h3>معلومات البطارية</h3>
+            <div class="kv" id="battKv"></div>
+          </div>
+        </div>
+        <div class="section-title">عمر البطارية ودورات الشحن</div>
+        <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="stat"><div class="k">دورات الشحن</div><div class="v num" id="cyc">--</div><div class="bar g"><i id="cycB"></i></div><div class="k" style="margin:8px 0 0" id="cycSub"></div></div>
+          <div class="stat"><div class="k">عمر البطارية</div><div class="v" id="age">--</div><div class="k" style="margin:8px 0 0" id="ageSub"></div></div>
+          <div class="stat"><div class="k">مدة الشحنة الكاملة</div><div class="v" id="runFull">--</div><div class="k" style="margin:8px 0 0" id="runSub"></div></div>
+          <div class="stat"><div class="k">العمر المتبقي المتوقع</div><div class="v" id="lifeLeft">--</div><div class="k" style="margin:8px 0 0" id="lifeSub"></div></div>
+        </div>
+        <div class="grid" style="grid-template-columns:1.4fr 1fr;margin-top:16px">
+          <div class="card"><h3>الاستخدام الشهري<span class="tag">ساعات على البطارية والشاحن</span></h3><canvas class="chart" id="cMonths" style="height:200px"></canvas>
+            <div class="legend"><span><i style="background:var(--red)"></i>على البطارية</span><span><i style="background:#3a3f4a"></i>على الشاحن</span></div></div>
+          <div class="card"><h3>من سجل ويندوز</h3><div class="kv" id="lifeKv"></div></div>
+        </div>
+        <div class="note info" style="margin-top:14px" id="lifeNote">البطارية نفسها ما تسجّل عدد الدورات (تعطي 0 دايماً)، فالبرنامج يحسبها من سجل ويندوز: إجمالي الطاقة المسحوبة من البطارية ÷ سعتها (50.8Wh). كل شحنة كاملة مستهلكة = دورة، حتى لو كانت على شكل شحنات جزئية.</div>
+
+        <div class="section-title">الشحن</div>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><div class="k">الحالة</div><div class="v" id="chState">--</div></div>
+          <div class="stat"><div class="k">قدرة الشحن الآن</div><div class="v num" id="chW">--<small>W</small></div></div>
+          <div class="stat"><div class="k">نوع الشحن الحالي</div><div class="v" id="chType">--</div></div>
+        </div>
+        <div class="note" style="margin-top:14px">
+          <b>الشحن السريع / العادي:</b> فحصت الجهاز ولا يوجد في الـ BIOS أو تعريفات ACEMAGIC واجهة تسمح لبرنامج بتغيير سرعة الشحن أو حد الشحن (مثل 80%). سرعة الشحن يحددها الشاحن نفسه: شاحن USB-C PD بقدرة 65W أو أعلى يعطي أسرع شحن. البرنامج يعرض لك نوع الشحن الفعلي حسب الواط اللي يدخل.
+        </div>
+      </section>
+
+      <!-- ================= PROCESSES ================= -->
+      <section class="page" id="p-proc">
+        <div class="toolbar">
+          <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a919e" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" placeholder="ابحث عن برنامج…"></div>
+          <div class="seg" id="pf">
+            <button data-f="bg" class="on">في الخلفية</button>
+            <button data-f="win">بنوافذ</button>
+            <button data-f="all">الكل</button>
+          </div>
+          <div class="pill num" id="procCount">--</div>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th data-s="name">البرنامج</th>
+              <th data-s="n">العدد</th>
+              <th data-s="cpu" class="sorted">المعالج ▾</th>
+              <th data-s="mem">الرام</th>
+              <th>التأثير على البطارية</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="ptb"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= OVERLAY ================= -->
+      <section class="page" id="p-ovl">
+        <div class="grid" style="grid-template-columns:1.25fr 1fr;align-items:start">
+          <div class="card" style="padding:0">
+            <div class="screen" id="ovScreen">
+              <div class="scr-bar"></div>
+              <div class="ov" id="ovPrev"></div>
+              <div class="posgrid" id="posGrid">
+                <button data-pos="tl"></button><button data-pos="tc"></button><button data-pos="tr"></button>
+                <button data-pos="bl"></button><button data-pos="bc"></button><button data-pos="br"></button>
+              </div>
+            </div>
+            <div style="padding:0 18px 14px;color:var(--muted);font-size:12.5px">اضغط على مكان في الشاشة عشان تحطها فيه، أو اسحبها بالماوس لأي مكان على شاشتك.</div>
+          </div>
+          <div class="card">
+            <h3>الشاشة العائمة<span class="tag">Mini Mode</span></h3>
+            <div class="row"><div class="t"><b>إظهار الشاشة العائمة</b><span>اختصار الإظهار والإخفاء: <b class="num" style="color:var(--text)">Ctrl + Shift + O</b></span></div><button class="switch" id="ovSw"></button></div>
+            <div class="row"><div class="t"><b>المظهر</b></div>
+              <div class="seg" id="ovTheme"><button data-t="dark">داكن</button><button data-t="light">فاتح</button></div></div>
+            <div class="row"><div class="t"><b>الاتجاه</b></div>
+              <div class="seg" id="ovLay"><button data-l="horizontal">أفقي</button><button data-l="vertical">عمودي</button></div></div>
+            <div class="row"><div class="t"><b>الشفافية</b><span>0% بدون خلفية، 100% خلفية كاملة.</span></div>
+              <input type="range" id="ovOp" min="0" max="100" step="5" style="width:150px"><b class="num" id="ovOpV" style="width:44px;text-align:center">--</b></div>
+            <div class="row"><div class="t"><b>الحجم</b></div>
+              <input type="range" id="ovSc" min="50" max="150" step="5" style="width:150px"><b class="num" id="ovScV" style="width:44px;text-align:center">--</b></div>
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">
+          <div class="card">
+            <h3>التخصيص</h3>
+            <label class="ck"><input type="checkbox" id="ovTop"><span></span>دايم فوق كل النوافذ</label>
+            <label class="ck"><input type="checkbox" id="ovSnap"><span></span>تلتصق بأطراف الشاشة لما تسحبها</label>
+            <label class="ck"><input type="checkbox" id="ovLock"><span></span>قفل الحركة (الماوس يعدّي من خلالها)</label>
+            <label class="ck"><input type="checkbox" id="ovAuto"><span></span>تلوين الأرقام حسب الحرارة والضغط</label>
+          </div>
+          <div class="card">
+            <h3>ألوان مخصصة<button class="btn" id="ovReset" style="margin-inline-start:auto;padding:5px 12px">إرجاع الألوان</button></h3>
+            <label class="ck"><input type="checkbox" id="ovCustom"><span></span>تفعيل</label>
+            <div class="colrow"><span>لون القراءة</span><label class="cpick"><input type="color" id="ovColV"><b class="num" id="ovColVt"></b></label></div>
+            <div class="colrow"><span>لون عنوان القراءة</span><label class="cpick"><input type="color" id="ovColL"><b class="num" id="ovColLt"></b></label></div>
+          </div>
+        </div>
+
+        <div class="section-title">وش يظهر فيها</div>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr)" id="ovGroups"></div>
+        <div class="note info" style="margin-top:14px">الشاشة العائمة تظهر فوق الألعاب اللي تشتغل بوضع «ملء الشاشة بدون حواف» (Borderless). بعض الألعاب بوضع ملء الشاشة الحصري (Exclusive Fullscreen) تخفيها، فغيّر وضع العرض في إعدادات اللعبة.</div>
+      </section>
+
+      <!-- ================= SETTINGS ================= -->
+      <section class="page" id="p-set">
+        <div class="card" style="margin-bottom:16px">
+          <h3>اللغة</h3>
+          <div class="row"><div class="t"><b>اللغة / Language</b><span>لغة البرنامج والشاشة العائمة والإشعارات وأيقونة الشريط.</span></div>
+            <div class="seg" id="langSeg"><button data-lang="ar" onclick="setLang('ar')">عربي</button><button data-lang="en" onclick="setLang('en')">English</button></div></div>
+        </div>
+        <div class="card">
+          <h3>الوضع المتكيّف</h3>
+          <div class="row"><div class="t"><b>لما يكون الشاحن موصول</b><span>الوضع اللي يتحوّل له الجهاز تلقائياً مع الشاحن.</span></div>
+            <select id="acSel"><option value="performance">عالي الأداء</option><option value="balanced">متوسط</option><option value="eco">اقتصادي</option></select></div>
+          <div class="row"><div class="t"><b>التحويل للاقتصادي تحت نسبة</b><span>على البطارية: فوق هذي النسبة متوسط، وتحتها اقتصادي.</span></div>
+            <input type="range" id="lowR" min="10" max="80" step="5"><b class="num" id="lowV" style="width:44px;text-align:center">40%</b></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>الإشعارات</h3>
+          <div class="row"><div class="t"><b>إشعار لما الشحن يوصل نسبة معيّنة</b><span>يطلع لك إشعار ويندوز لما الشاحن يوصّل البطارية لهذي النسبة، عشان تفصله وتحافظ على عمرها.</span></div><button class="switch" id="chAlertSw"></button></div>
+          <div class="row"><div class="t"><b>نسبة الإشعار</b><span>80% هي النسبة المنصوح فيها لإطالة عمر بطاريات الليثيوم.</span></div>
+            <input type="range" id="chAlertR" min="50" max="100" step="5"><b class="num" id="chAlertV" style="width:44px;text-align:center">80%</b></div>
+          <div class="row"><div class="t"><b>تنبيه البطارية الضعيفة</b><span>يطلع تلقائياً عند 20% و 10% وأنت على البطارية.</span></div><button class="btn" id="testAlert">جرّب الإشعار</button></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>حد واط المعالج<span class="tag">RyzenAdj · Hawk Point</span></h3>
+          <div class="row"><div class="t"><b>التحكم بواط المعالج</b><span>يغيّر حد الطاقة للمعالج حسب الوضع. لو طفيته يرجع للحد الأصلي من المصنع 35W.</span></div><button class="switch" id="tdpSw"></button></div>
+          <div id="tdpRows">
+            <div class="tdprow"><b>اقتصادي</b><div><input type="range" data-t="eco" min="8" max="54" step="1"><div class="ticks"><span>8W</span><span>35W</span><span>54W</span></div></div><b class="num" id="tv-eco">--</b></div>
+            <div class="tdprow"><b>متوسط</b><div><input type="range" data-t="balanced" min="8" max="54" step="1"><div class="ticks"><span>8W</span><span>35W</span><span>54W</span></div></div><b class="num" id="tv-balanced">--</b></div>
+            <div class="tdprow"><b>عالي الأداء</b><div><input type="range" data-t="performance" min="8" max="54" step="1"><div class="ticks"><span>8W</span><span>35W</span><span>54W</span></div></div><b class="num" id="tv-performance">--</b></div>
+          </div>
+          <div class="note" id="tdpNote" style="margin-top:10px">الـ TDP الرسمي للمعالج 45W (وهو اللي يطلع في NZXT)، بس ACEMAGIC ضابطة الجهاز على 35W. أقصى حد 54W، وهو أعلى حد يدعمه المعالج رسمياً. ومع الواط العالي يسخن الجهاز أكثر، والمعالج يقلّل سرعته تلقائياً إذا وصل 100°C.</div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>البرنامج</h3>
+          <div class="row"><div class="t"><b>يشتغل مع تشغيل ويندوز</b><span>يشتغل بالخلفية بدون نافذة عشان الوضع المتكيّف يبقى شغّال.</span></div><button class="switch" id="startSw"></button></div>
+          <div class="row"><div class="t"><b>الإصدار <span class="num" id="ver">--</span></b><span id="verSub">إعادة التشغيل تطبّق أي تحديث جديد على ملفات البرنامج.</span></div><button class="btn" id="restartBtn">إعادة تشغيل</button></div>
+          <div class="row"><div class="t"><b>إيقاف البرنامج</b><span>إغلاق النافذة يخليه شغّال بالخلفية. هذا الزر يوقفه كلياً.</span></div><button class="btn red" id="quit2">إيقاف</button></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>وش يغيّر كل وضع</h3>
+          <div class="kv" id="presetKv"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="modal" id="modal"><div class="dialog"><h4 id="mT"></h4><p id="mP"></p><div class="acts"><button class="btn red" id="mOk">إنهاء</button><button class="btn" id="mNo">إلغاء</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= i18n: Arabic is the source language; English is applied on the DOM ================= */
+let LANG = "ar";
+try { LANG = localStorage.getItem("rx16-lang") || "ar"; } catch {}
+const EN = {
+  "مركز التحكم":"Control Center","الرئيسية":"Home","الأداء والحساسات":"Performance & Sensors","البطارية والشحن":"Battery & Charging",
+  "البرامج الشغالة":"Running Apps","الشاشة العائمة":"Overlay","الإعدادات":"Settings",
+  "شغّل «تفعيل صلاحيات المدير.bat» مرة وحدة":"Run «تفعيل صلاحيات المدير.bat» once","⚠ بدون صلاحيات مدير":"⚠ No admin rights",
+  "إيقاف البرنامج كلياً":"Quit the app completely","الاستهلاك الآن":"Power draw now","الوقت المتبقي":"Time remaining","صحة البطارية":"Battery health",
+  "الطاقة المتبقية":"Energy remaining","استهلاك المعالج (APU)":"APU power","حد واط المعالج":"CPU power limit","وضع الطاقة":"Power mode",
+  "المراقبة المباشرة":"Live monitoring","حرارة المعالج":"CPU temperature","حرارة كرت الشاشة":"GPU temperature","ضغط المعالج":"CPU load",
+  "ضغط كرت الشاشة":"GPU load","تردد المعالج":"CPU clock","تردد كرت الشاشة":"GPU clock","الرام المستخدمة":"RAM used","تردد الرام":"RAM speed",
+  "الحرارة":"Temperature","آخر 3 دقائق":"Last 3 minutes","المعالج":"CPU","كرت الشاشة":"GPU","الضغط":"Load",
+  "المعالج — AMD Ryzen 7 H 255":"CPU — AMD Ryzen 7 H 255","التردد الحالي":"Current clock","استهلاك الشريحة كاملة":"Whole-chip power",
+  "كرت الشاشة — AMD Radeon 780M":"GPU — AMD Radeon 780M","استهلاك الكرت + SoC":"GPU + SoC power","الذاكرة والشريحة":"Memory & SoC","سرعة الرام":"RAM speed",
+  "حرارة الشريحة (SoC)":"SoC temperature","تردد SoC":"SoC clock","حدود الطاقة — RyzenAdj":"Power limits — RyzenAdj",
+  "الاستهلاك المستمر (STAPM)":"Sustained power (STAPM)","حد الدفعات القصيرة (PPT Fast)":"Short boost limit (PPT Fast)",
+  "حد الدفعات الطويلة (PPT Slow)":"Long boost limit (PPT Slow)","حد حرارة الأنوية (Tctl)":"Core temp limit (Tctl)",
+  "TDP الرسمي من AMD":"Official AMD TDP","مواصفات Ryzen 7 H 255 (اللي يعرضه NZXT)":"Ryzen 7 H 255 spec (what NZXT shows)",
+  "المدى المسموح (cTDP)":"Allowed range (cTDP)","الشركات تختار رقم ضمن هذا المدى":"Laptop makers pick a value in this range",
+  "حد ACEMAGIC الأصلي للجهاز":"ACEMAGIC's factory limit","الحد الفعلي المقروء من المعالج قبل أي تعديل":"The real limit read from the CPU before any change",
+  "القراءات من تعريف AMD مباشرة (ADL) بدون صلاحيات مدير. الرام المتاحة لويندوز أقل من 24GB لأن جزءاً منها محجوز لكرت الشاشة المدمج 780M.":"Readings come straight from the AMD driver (ADL). Windows sees less than 24GB of RAM because part of it is reserved for the integrated 780M GPU.",
+  "مستوى الشحن":"Charge level","يُسجَّل كل 30 ثانية":"Logged every 30 seconds","نسبة الشحن":"Charge %","القدرة (واط)":"Power (W)",
+  "معلومات البطارية":"Battery info","عمر البطارية ودورات الشحن":"Battery lifespan & charge cycles","دورات الشحن":"Charge cycles","عمر البطارية":"Battery age",
+  "مدة الشحنة الكاملة":"Full-charge runtime","العمر المتبقي المتوقع":"Expected life left","الاستخدام الشهري":"Monthly usage",
+  "ساعات على البطارية والشاحن":"Hours on battery and charger","على البطارية":"On battery","على الشاحن":"On charger","من سجل ويندوز":"From Windows history",
+  "البطارية نفسها ما تسجّل عدد الدورات (تعطي 0 دايماً)، فالبرنامج يحسبها من سجل ويندوز: إجمالي الطاقة المسحوبة من البطارية ÷ سعتها (50.8Wh). كل شحنة كاملة مستهلكة = دورة، حتى لو كانت على شكل شحنات جزئية.":"The battery doesn't report its cycle count (always 0), so the app calculates it from Windows history: total energy drained ÷ capacity (50.8Wh). Every full charge used = one cycle, even if spread over partial charges.",
+  "ملاحظة: البطارية تبلّغ عن نفس السعة (100%) من أول يوم، فقراءة الصحة ممكن ما تعكس التآكل الحقيقي. عدد الدورات والعمر أدق مقياس هنا.":"Note: the battery has reported the same capacity (100%) since day one, so the health reading may not reflect real wear. Cycle count and age are the more accurate measures here.",
+  "الشحن":"Charging","الحالة":"Status","قدرة الشحن الآن":"Charging power now","نوع الشحن الحالي":"Current charging type","الشحن السريع / العادي:":"Fast / normal charging:",
+  "فحصت الجهاز ولا يوجد في الـ BIOS أو تعريفات ACEMAGIC واجهة تسمح لبرنامج بتغيير سرعة الشحن أو حد الشحن (مثل 80%). سرعة الشحن يحددها الشاحن نفسه: شاحن USB-C PD بقدرة 65W أو أعلى يعطي أسرع شحن. البرنامج يعرض لك نوع الشحن الفعلي حسب الواط اللي يدخل.":"Neither the BIOS nor ACEMAGIC's drivers expose a way for software to change charging speed or set a charge limit (like 80%). Charging speed is set by the charger: a 65W+ USB-C PD charger gives the fastest charge. The app shows the actual charging type from the incoming watts.",
+  "ابحث عن برنامج…":"Search apps…","في الخلفية":"Background","بنوافذ":"With windows","الكل":"All","البرنامج":"App","العدد":"Count","الرام":"RAM",
+  "التأثير على البطارية":"Battery impact",
+  "اضغط على مكان في الشاشة عشان تحطها فيه، أو اسحبها بالماوس لأي مكان على شاشتك.":"Click a spot on the screen to place it there, or drag it with the mouse anywhere on your screen.",
+  "إظهار الشاشة العائمة":"Show overlay","اختصار الإظهار والإخفاء:":"Show / hide shortcut:","المظهر":"Theme","داكن":"Dark","فاتح":"Light",
+  "الاتجاه":"Orientation","أفقي":"Horizontal","عمودي":"Vertical","الشفافية":"Opacity","0% بدون خلفية، 100% خلفية كاملة.":"0% no background, 100% solid background.",
+  "الحجم":"Size","التخصيص":"Customization","دايم فوق كل النوافذ":"Always on top","تلتصق بأطراف الشاشة لما تسحبها":"Snap to screen edges when dragged",
+  "قفل الحركة (الماوس يعدّي من خلالها)":"Lock movement (mouse clicks pass through)","تلوين الأرقام حسب الحرارة والضغط":"Color values by temperature and load",
+  "ألوان مخصصة":"Custom colors","إرجاع الألوان":"Reset colors","تفعيل":"Enable","لون القراءة":"Reading color","لون عنوان القراءة":"Reading title color",
+  "وش يظهر فيها":"What it shows",
+  "الشاشة العائمة تظهر فوق الألعاب اللي تشتغل بوضع «ملء الشاشة بدون حواف» (Borderless). بعض الألعاب بوضع ملء الشاشة الحصري (Exclusive Fullscreen) تخفيها، فغيّر وضع العرض في إعدادات اللعبة.":"The overlay shows on top of games running in Borderless mode. Some games in Exclusive Fullscreen hide it — switch the display mode in the game's settings.",
+  "الوضع المتكيّف":"Adaptive mode","لما يكون الشاحن موصول":"When the charger is plugged in","الوضع اللي يتحوّل له الجهاز تلقائياً مع الشاحن.":"The mode the laptop switches to automatically on the charger.",
+  "عالي الأداء":"Performance","متوسط":"Balanced","اقتصادي":"Eco","متكيّف":"Adaptive","التحويل للاقتصادي تحت نسبة":"Switch to Eco below",
+  "على البطارية: فوق هذي النسبة متوسط، وتحتها اقتصادي.":"On battery: Balanced above this level, Eco below it.","الإشعارات":"Notifications",
+  "إشعار لما الشحن يوصل نسبة معيّنة":"Notify when charge reaches a level",
+  "يطلع لك إشعار ويندوز لما الشاحن يوصّل البطارية لهذي النسبة، عشان تفصله وتحافظ على عمرها.":"Shows a Windows notification when charging reaches this level, so you can unplug and protect battery life.",
+  "نسبة الإشعار":"Notification level","80% هي النسبة المنصوح فيها لإطالة عمر بطاريات الليثيوم.":"80% is the recommended level to extend lithium battery life.",
+  "تنبيه البطارية الضعيفة":"Low battery alert","يطلع تلقائياً عند 20% و 10% وأنت على البطارية.":"Shown automatically at 20% and 10% while on battery.",
+  "جرّب الإشعار":"Test notification","التحكم بواط المعالج":"CPU power control",
+  "يغيّر حد الطاقة للمعالج حسب الوضع. لو طفيته يرجع للحد الأصلي من المصنع 35W.":"Changes the CPU power limit per mode. Turning it off restores the 35W factory limit.",
+  "الـ TDP الرسمي للمعالج 45W (وهو اللي يطلع في NZXT)، بس ACEMAGIC ضابطة الجهاز على 35W. أقصى حد 54W، وهو أعلى حد يدعمه المعالج رسمياً. ومع الواط العالي يسخن الجهاز أكثر، والمعالج يقلّل سرعته تلقائياً إذا وصل 100°C.":"The CPU's official TDP is 45W (what NZXT shows), but ACEMAGIC sets this laptop to 35W. The maximum is 54W, the highest the CPU officially supports. Higher wattage runs hotter, and the CPU throttles itself at 100°C.",
+  "التحكم بالواط يحتاج صلاحيات مدير: شغّل «تفعيل صلاحيات المدير.bat» مرة وحدة.":"Power control needs admin rights: run «تفعيل صلاحيات المدير.bat» once.",
+  "يشتغل مع تشغيل ويندوز":"Start with Windows","يشتغل بالخلفية بدون نافذة عشان الوضع المتكيّف يبقى شغّال.":"Runs in the background without a window so adaptive mode keeps working.",
+  "الإصدار":"Version","إعادة التشغيل تطبّق أي تحديث جديد على ملفات البرنامج.":"Restarting applies any new update to the app's files.","إعادة تشغيل":"Restart",
+  "إيقاف البرنامج":"Quit app","إغلاق النافذة يخليه شغّال بالخلفية. هذا الزر يوقفه كلياً.":"Closing the window keeps it running in the background. This button quits it completely.",
+  "إيقاف":"Quit","وش يغيّر كل وضع":"What each mode changes",
+  "لغة البرنامج والشاشة العائمة والإشعارات وأيقونة الشريط.":"Language for the app, overlay, notifications and tray icon.",
+  "إنهاء":"End","إلغاء":"Cancel","اللغة":"Language",
+  "يختار الأنسب تلقائياً حسب الشاحن ونسبة البطارية":"Picks the best mode automatically based on charger and battery level",
+  "أطول عمر للبطارية، المعالج محدود 60% بدون Boost":"Longest battery life, CPU capped at 60% without Boost",
+  "توازن بين الأداء والبطارية للاستخدام اليومي":"Balance between performance and battery for everyday use",
+  "أقصى تردد و Boost قوي للألعاب والشغل الثقيل":"Max clocks and strong Boost for games and heavy work",
+  "مفعّل":"Active","الشاحن موصول · يشحن":"Plugged in · charging","الشاحن موصول":"Plugged in","يشحن":"Charging","مشحونة بالكامل":"Fully charged","موصول":"Plugged in",
+  "تعمل على البطارية":"Running on battery","قدرة الشحن":"Charging power","وقت الشحن الكامل":"Time to full",
+  "الشركة / الطراز":"Maker / model","النوع":"Type","ليثيوم أيون":"Lithium-ion","السعة الأصلية":"Design capacity","السعة الحالية الكاملة":"Current full capacity",
+  "عدد دورات الشحن":"Charge cycles","الجهد":"Voltage","الاستهلاك":"Power draw","مكتملة":"Full","موصول بدون شحن":"Plugged in, not charging","غير موصول":"Unplugged",
+  "⚡ شحن سريع":"⚡ Fast charging","شحن عادي":"Normal charging","شحن بطيء":"Slow charging",
+  "أفضل كفاءة طاقة":"Best power efficiency","متوازن":"Balanced","أفضل أداء":"Best performance","مطفأ":"Off","قوي (Aggressive)":"Aggressive",
+  "سنة":"1 year","شهر":"1 month","تقدير ويندوز":"Windows estimate","يحدّه عمر الليثيوم الزمني (~5 سنوات)":"Limited by lithium calendar aging (~5 years)",
+  "إجمالي الطاقة المسحوبة":"Total energy drained","ساعات الاستخدام على البطارية":"Hours used on battery","ساعات الاستخدام على الشاحن":"Hours used on charger",
+  "ساعات السكون على البطارية":"Hours asleep on battery","مدة السكون بالشحنة الكاملة":"Standby time on a full charge","الدورات تكفي حسب استخدامك":"Cycles last at your usage",
+  "التردد":"Clock","الواط":"Power","المستخدم":"Used","النسبة":"Percent","البطارية":"Battery","الطاقة":"Power","الوضع الحالي":"Current mode","حد الواط":"Power limit",
+  "استهلاك الشريحة":"Chip power","أخرى":"Other","الساعة":"Clock time","اختر قراءة وحدة على الأقل":"Pick at least one reading",
+  "مقفولة: الماوس يعدّي من خلالها":"Locked: mouse clicks pass through","تقدر تسحبها بالماوس الحين":"You can drag it with the mouse now",
+  "الشاشة العائمة ظاهرة":"Overlay shown","الشاشة العائمة مخفية":"Overlay hidden","عالي":"High","منخفض":"Low","برنامج نظام محمي":"Protected system process",
+  "تم الحفظ":"Saved","يعيد التشغيل…":"Restarting…","تم تفعيل إشعار الشحن":"Charge notification on","تم إيقاف إشعار الشحن":"Charge notification off",
+  "شوف الإشعار جنب الساعة":"Check the notification by the clock","أيقونة الشريط مو شغالة":"The tray icon isn't running","تم تفعيل التحكم بالواط":"Power control on",
+  "رجع حد المصنع 35W":"Back to the 35W factory limit","ما قدرت أطبّق الواط":"Couldn't apply the power limit","بيشتغل مع ويندوز":"Will start with Windows",
+  "ما راح يشتغل مع ويندوز":"Won't start with Windows","إيقاف RX16 Control Center؟":"Quit RX16 Control Center?",
+  "الوضع المتكيّف بيوقف لين تشغّل البرنامج مرة ثانية. وضع الطاقة الحالي بيبقى زي ما هو.":"Adaptive mode stops until you start the app again. The current power mode stays as it is.",
+  "الخدمة متوقفة":"Service stopped","تعذّر تغيير وضع الطاقة في ويندوز":"Could not change the Windows power mode",
+};
+const trWord = s => EN[s] ?? s;
+const PAT = [
+  [/^(\d+)س (\d+)د$/, (m,h,mi) => `${h}h ${mi}m`],
+  [/^(\d+)د$/, (m,mi) => `${mi}m`],
+  [/^(\d+) ساعة و (\d+) د$/, (m,h,mi) => `${h}h ${mi}m`],
+  [/^(\d+) ساعة$/, (m,h) => `${h} h`],
+  [/^(\d+) دقيقة$/, (m,mi) => `${mi} min`],
+  [/^(\d+) يوم$/, (m,d) => `${d} days`],
+  [/^(\d+) سنوات$/, (m,y) => `${y} years`],
+  [/^(\d+) سنة$/, (m,y) => `${y} years`],
+  [/^(\d+) أشهر$/, (m,n) => `${n} months`],
+  [/^(سنة|\d+ سنوات) و (شهر|\d+ أشهر)$/, (m,a,b) => `${a === "سنة" ? "1 year" : a.replace(" سنوات"," years")}, ${b === "شهر" ? "1 month" : b.replace(" أشهر"," months")}`],
+  [/^~([\d.]+) (سنوات|سنة)$/, (m,n) => `~${n} years`],
+  [/^~([\d.]+) دورة بالشهر$/, (m,n) => `~${n} cycles / month`],
+  [/^· (\d+) دورة$/, (m,n) => `· ${n} cycles`],
+  [/^أول استخدام: (.+)$/, (m,d) => `First use: ${d}`],
+  [/^متوسط استهلاكك ([\d.]+)W على البطارية$/, (m,w) => `Your average draw on battery: ${w}W`],
+  [/^حسب (\d+) دورة لين 80%$/, (m,n) => `Based on ${n} cycles to 80%`],
+  [/^متكيّف ← (.+)$/, (m,x) => `Adaptive → ${trWord(x)}`],
+  [/^يعمل الآن كـ: (.+)$/, (m,x) => `Running as: ${trWord(x)}`],
+  [/^حد المعالج (\d+)W$/, (m,w) => `CPU limit ${w}W`],
+  [/^وضع ويندوز: (.+?) · حد المعالج (\d+)% · Boost (.+?) · EPP (\d+)$/, (m,o,mx,b,e) => `Windows mode: ${trWord(o)} · CPU max ${mx}% · Boost ${trWord(b)} · EPP ${e}`],
+  [/^(\d+) برنامج$/, (m,n) => `${n} apps`],
+  [/^إنهاء (.+)؟$/, (m,n) => `End ${n}?`],
+  [/^بيتم إغلاق (\d+) عملية لهذا البرنامج\. أي شغل غير محفوظ فيه ممكن يضيع\.$/, (m,n) => `This will close ${n} process(es) of this app. Any unsaved work in it may be lost.`],
+  [/^تم إنهاء (.+)$/, (m,n) => `Ended ${n}`],
+  [/^ما قدرت أنهي (.+) \(يمكن يحتاج صلاحيات مدير\)$/, (m,n) => `Couldn't end ${n} (may need admin rights)`],
+  [/^الإشعار عند (\d+)%$/, (m,n) => `Notify at ${n}%`],
+  [/^حد (.+): (\d+)W$/, (m,x,w) => `${trWord(x)} limit: ${w}W`],
+  [/^تم التحويل إلى وضع (.+)$/, (m,x) => `Switched to ${trWord(x)} mode`],
+  [/^(.+) ([▾▴])$/, (m,x,a) => `${trWord(x)} ${a}`],
+];
+const AR_RE = /[؀-ۿ]/;
+function trText(s){
+  const k = s.trim();
+  if (!k) return s;
+  let r = EN[k];
+  if (r == null) for (const [re, fn] of PAT) { const m = k.match(re); if (m) { r = fn(...m); break; } }
+  return r == null ? s : s.replace(k, r);
+}
+function trNode(n){
+  const v = n.nodeValue;
+  if (LANG === "en") {
+    if (n.__en === v || !AR_RE.test(v)) return;
+    const t = trText(v);
+    if (t !== v) { n.__ar = v; n.__en = t; n.nodeValue = t; }
+  } else if (n.__en != null && n.__en === v) { n.nodeValue = n.__ar; n.__en = null; }
+}
+function trAttrs(el){
+  for (const a of ["title", "placeholder"]) {
+    if (!el.hasAttribute || !el.hasAttribute(a)) continue;
+    const key = "__" + a, v = el.getAttribute(a);
+    if (LANG === "en") {
+      if (el[key + "en"] === v || !AR_RE.test(v)) continue;   // already ours: don't loop on our own mutation
+      const t = trText(v);
+      if (t !== v) { el[key] = v; el[key + "en"] = t; el.setAttribute(a, t); }
+    } else if (el[key] != null && el[key + "en"] === v) { el[key + "en"] = null; el.setAttribute(a, el[key]); }
+  }
+}
+function trTree(root){
+  if (root.nodeType === 3) return trNode(root);
+  if (root.nodeType !== 1) return;
+  trAttrs(root);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let n; while ((n = w.nextNode())) n.nodeType === 3 ? trNode(n) : trAttrs(n);
+}
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.documentElement.dir = LANG === "en" ? "ltr" : "rtl";
+  trTree(document.body);
+  document.querySelectorAll("#langSeg button").forEach(b => b.classList.toggle("on", b.dataset.lang === LANG));
+  const lb = document.getElementById("langBtn"); if (lb) lb.textContent = LANG === "en" ? "ع" : "EN";
+}
+new MutationObserver(ms => { for (const m of ms) {
+  if (m.type === "characterData") trNode(m.target);
+  else if (m.type === "attributes") trAttrs(m.target);
+  else m.addedNodes.forEach(trTree);
+}}).observe(document.body, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:["title","placeholder"]});
+let langPending = false;
+async function setLang(l){
+  LANG = l; langPending = true;
+  try { localStorage.setItem("rx16-lang", l); } catch {}
+  applyLang();
+  try { await fetch("/api/lang", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({lang:l})}); } catch {}
+  langPending = false;
+  if (typeof render === "function") render();
+}
+applyLang();
+
+const $ = id => document.getElementById(id);
+const MODES = [
+  {k:"adaptive", n:"متكيّف", d:"يختار الأنسب تلقائياً حسب الشاحن ونسبة البطارية",
+   ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/><path d="M12 8v4l3 2"/></svg>'},
+  {k:"eco", n:"اقتصادي", d:"أطول عمر للبطارية، المعالج محدود 60% بدون Boost",
+   ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 19c0-8 6-14 15-14 0 9-6 15-14 15"/><path d="M5 19l7-7"/></svg>'},
+  {k:"balanced", n:"متوسط", d:"توازن بين الأداء والبطارية للاستخدام اليومي",
+   ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v18M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg>'},
+  {k:"performance", n:"عالي الأداء", d:"أقصى تردد و Boost قوي للألعاب والشغل الثقيل",
+   ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>'},
+];
+const NAMES = {eco:"اقتصادي", balanced:"متوسط", performance:"عالي الأداء", adaptive:"متكيّف"};
+const TITLES = {home:"الرئيسية", perf:"الأداء والحساسات", batt:"البطارية والشحن", proc:"البرامج الشغالة", ovl:"الشاشة العائمة", set:"الإعدادات"};
+const PROTECTED = new Set(["system","registry","smss","csrss","wininit","services","lsass","winlogon","svchost","dwm","fontdrvhost","memory compression","explorer","msmpeng","sihost","ctfmon","audiodg","spoolsv","pythonw","python","conhost","runtimebroker","searchhost","startmenuexperiencehost","textinputhost","securityhealthservice","wudfhost","lsaiso","dashost","taskhostw","shellexperiencehost","amdfendrsr","atiesrxx","atieclxx"]);
+
+let S = null, page = "home", pfilter = "bg", psort = "cpu", pdir = -1;
+
+/* ---------- nav ---------- */
+$("nav").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll(".nav button").forEach(x => x.classList.toggle("on", x === b));
+  page = b.dataset.p;
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + page));
+  $("title").textContent = TITLES[page];
+  render();
+  if (page === "proc") { refresh(); setTimeout(refresh, 600); }   // ask for the process list right away
+};
+
+/* ---------- modes ---------- */
+$("modes").innerHTML = MODES.map(m => `<button class="mode" data-k="${m.k}"><span class="now">مفعّل</span><div class="ic">${m.ic}</div><b>${m.n}</b><span>${m.d}</span><div class="eff" id="eff-${m.k}"></div>${m.k !== "adaptive" ? `<span class="watt" id="watt-${m.k}"></span>` : ""}</button>`).join("");
+$("modes").onclick = async e => {
+  const b = e.target.closest(".mode"); if (!b) return;
+  document.querySelectorAll(".mode").forEach(x => x.classList.toggle("on", x === b));
+  await post("/api/mode", {mode: b.dataset.k});
+  toast("تم التحويل إلى وضع " + NAMES[b.dataset.k]);
+  refresh();
+};
+
+/* ---------- gauges ---------- */
+function arcPath(frac){
+  const a0 = Math.PI*0.85, a1 = Math.PI*2.15, a = a0 + (a1-a0)*Math.max(0,Math.min(1,frac));
+  const r=78, cx=100, cy=100;
+  const p = t => [cx + r*Math.cos(t), cy + r*Math.sin(t)];
+  const [x0,y0]=p(a0), [x,y]=p(a);
+  return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${a-a0>Math.PI?1:0} 1 ${x.toFixed(1)} ${y.toFixed(1)}`;
+}
+function gauge(id, frac, color){
+  const el = $(id);
+  el.innerHTML = `<path d="${arcPath(1)}" stroke="#262a31" stroke-width="12" fill="none" stroke-linecap="round"/>` +
+    (frac>0.005 ? `<path d="${arcPath(frac)}" stroke="${color}" stroke-width="12" fill="none" stroke-linecap="round" style="filter:drop-shadow(0 0 6px ${color}66)"/>` : "");
+}
+const tempColor = t => t>=85 ? "#ed1c24" : t>=70 ? "#ff8a1f" : t>=55 ? "#ffb020" : "#2fd07a";
+const loadColor = l => l>=85 ? "#ed1c24" : l>=50 ? "#ff8a1f" : "#3aa0ff";
+
+/* ---------- charts ---------- */
+function chart(canvas, series, opts={}){
+  const dpr = window.devicePixelRatio||1, w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w) return;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  const c = canvas.getContext("2d"); c.scale(dpr,dpr);
+  const pad = {l:34,r:8,t:8,b:18}, W = w-pad.l-pad.r, H = h-pad.t-pad.b;
+  const max = opts.max||100;
+  c.direction = "ltr"; c.textAlign = "left";
+  c.font = "11px Segoe UI"; c.fillStyle = "#5d6470"; c.strokeStyle = "#22252c"; c.lineWidth = 1;
+  for (let i=0;i<=4;i++){ const y = pad.t + H*i/4; c.beginPath(); c.moveTo(pad.l,y); c.lineTo(w-pad.r,y); c.stroke(); c.fillText(Math.round(max*(1-i/4)) + (opts.unit||""), 2, y+4); }
+  series.forEach(s => {
+    const pts = s.data; if (pts.length<2) return;
+    const n = opts.n || pts.length, x = i => pad.l + W*(i + (n-pts.length))/(n-1);
+    const y = v => pad.t + H*(1 - Math.max(0,Math.min(max, v ?? 0))/max);
+    const g = c.createLinearGradient(0,pad.t,0,pad.t+H); g.addColorStop(0, s.color+"40"); g.addColorStop(1, s.color+"00");
+    c.beginPath(); pts.forEach((v,i)=> i? c.lineTo(x(i),y(s.scale? v*s.scale : v)) : c.moveTo(x(i),y(s.scale? v*s.scale : v)));
+    c.strokeStyle = s.color; c.lineWidth = 2; c.lineJoin="round"; c.stroke();
+    if (s.fill!==false){ c.lineTo(x(pts.length-1), pad.t+H); c.lineTo(x(0), pad.t+H); c.closePath(); c.fillStyle = g; c.fill(); }
+  });
+}
+
+/* ---------- helpers ---------- */
+const fmt = (v, d=0) => v==null || isNaN(v) ? "--" : Number(v).toFixed(d);
+function setV(id, v, unit, d=0){ $(id).innerHTML = `${fmt(v,d)}<small>${unit}</small>`; }
+function setB(id, frac){ $(id).style.width = Math.max(0,Math.min(100,frac*100)) + "%"; }
+function eta(hours){ if (!isFinite(hours) || hours<=0) return "--"; const h=Math.floor(hours), m=Math.round((hours-h)*60); return h ? `${h}س ${m}د` : `${m}د`; }
+function toast(t){ const el=$("toast"); el.textContent=t; el.classList.add("on"); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("on"),2200); }
+async function post(url, body){ const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); return r.json(); }
+function confirmBox(title, text, okText="إنهاء"){ return new Promise(res => { $("mT").textContent=title; $("mP").textContent=text; $("mOk").textContent=okText; $("modal").classList.add("on");
+  $("mOk").onclick=()=>{$("modal").classList.remove("on");res(true)}; $("mNo").onclick=()=>{$("modal").classList.remove("on");res(false)}; }); }
+const hue = s => { let h=0; for (const ch of s) h = (h*31 + ch.charCodeAt(0)) % 360; return h; };
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- render ---------- */
+function render(){
+  if (!S) return;
+  const s = S.sample || {}, hw = S.hw || {}, pct = S.percent || 0;
+  const online = !!s.online, charging = s.charge > 0;
+
+  // header
+  $("pwrDot").className = "dot " + (online ? "g" : pct < 20 ? "r" : "a");
+  $("pwrTxt").textContent = online ? (charging ? "الشاحن موصول · يشحن" : "الشاحن موصول") : "على البطارية";
+  $("modePill").textContent = S.mode === "adaptive" ? `متكيّف ← ${NAMES[S.effective]||"…"}` : NAMES[S.mode];
+
+  $("adminPill").style.display = S.admin ? "none" : "flex";
+
+  // modes
+  document.querySelectorAll(".mode").forEach(b => b.classList.toggle("on", b.dataset.k === S.mode));
+  for (const k of ["eco","balanced","performance"]) {
+    const w = S.config?.tdp_enabled && S.admin ? S.config.tdp[k] : null;
+    $("watt-" + k).textContent = w ? `حد المعالج ${w}W` : "";
+    $("watt-" + k).style.display = w ? "inline-block" : "none";
+  }
+  $("eff-adaptive").textContent = S.mode==="adaptive" && S.effective ? "يعمل الآن كـ: " + NAMES[S.effective] : "";
+  $("modeErr").style.display = S.error ? "block" : "none"; $("modeErr").textContent = S.error || "";
+
+  if (page === "home") {
+    $("pct").textContent = fmt(pct);
+    const arc = $("ringArc"); arc.style.strokeDashoffset = 540.35 * (1 - pct/100);
+    arc.style.stroke = pct < 15 ? "#ed1c24" : online ? "#2fd07a" : "url(#rg)";
+    $("battState").innerHTML = online ? `<span class="bolt">⚡</span>${charging ? "يشحن" : (pct>=99 ? "مشحونة بالكامل" : "موصول")}` : "تعمل على البطارية";
+    const rateW = charging ? s.charge/1000 : s.discharge/1000;
+    $("rateK").textContent = charging ? "قدرة الشحن" : "الاستهلاك الآن";
+    setV("rate", rateW, "W", 1);
+    $("etaK").textContent = charging ? "وقت الشحن الكامل" : "الوقت المتبقي";
+    $("eta").textContent = charging ? eta((s.full - s.remaining)/s.charge) : (online ? "--" : eta(s.remaining/s.discharge));
+    const h = S.health; setV("health", h ? 100*h.full/h.design : null, "%");
+    if (h && h.cycles_est != null) $("health").innerHTML += `<small>· ${h.cycles_est.toFixed(0)} دورة</small>`;
+    setV("wh", s.remaining/1000, "Wh", 1);
+    setV("apuW", hw.apu_power, "W");
+    const rz = S.ryzen || {};
+    setV("tdpNow", rz["STAPM LIMIT"], "W");
+
+    gauge("g-ct", (hw.cpu_temp||0)/100, tempColor(hw.cpu_temp||0)); $("ct").textContent = fmt(hw.cpu_temp);
+    gauge("g-gt", (hw.gpu_temp||0)/100, tempColor(hw.gpu_temp||0)); $("gt").textContent = fmt(hw.gpu_temp);
+    gauge("g-cl", (hw.cpu_load||0)/100, loadColor(hw.cpu_load||0)); $("cl").textContent = fmt(hw.cpu_load);
+    gauge("g-gl", (hw.gpu_load||0)/100, loadColor(hw.gpu_load||0)); $("gl").textContent = fmt(hw.gpu_load);
+    $("ctSub").textContent = hw.cpu_power!=null ? `CPU ${hw.cpu_power} W` : "";
+    $("gtSub").textContent = hw.gpu_power!=null ? `GPU+SoC ${hw.gpu_power} W` : "";
+    $("clSub").textContent = "8C / 16T";
+    $("glSub").textContent = "12 CU · RDNA 3";
+
+    setV("cclk", hw.cpu_clk, "MHz"); setB("cclkB", (hw.cpu_clk||0)/4900);
+    setV("gclk", hw.gpu_clk, "MHz"); setB("gclkB", (hw.gpu_clk||0)/2600);
+    setV("ram", hw.ram_used, ` / ${fmt(hw.ram_total,1)} GB`, 1); setB("ramB", (hw.ram_load||0)/100); $("ramPct").textContent = fmt(hw.ram_load)+"%";
+    const rs = hw.ram ? hw.ram.speed : null;
+    setV("rclk", rs, "MT/s"); setB("rclkB", (rs||0)/5600);
+    if (hw.ram) $("ramFoot").textContent = `${hw.ram.installed_gb}GB ${hw.ram.type}-${hw.ram.speed}`;
+  }
+
+  if (page === "perf") {
+    const hh = S.hw_hist || [];
+    chart($("cTemp"), [{data:hh.map(p=>p.ct), color:"#ed1c24"}, {data:hh.map(p=>p.gt), color:"#3aa0ff"}], {max:100, unit:"°", n:90});
+    chart($("cLoad"), [{data:hh.map(p=>p.cl), color:"#ed1c24"}, {data:hh.map(p=>p.gl), color:"#22d3ee"}], {max:100, unit:"%", n:90});
+    setV("d-ct", hw.cpu_temp, "°C"); setB("d-ctB", (hw.cpu_temp||0)/100);
+    setV("d-cclk", hw.cpu_clk, "MHz"); setB("d-cclkB", (hw.cpu_clk||0)/4900);
+    setV("d-cl", hw.cpu_load, "%"); setB("d-clB", (hw.cpu_load||0)/100);
+    setV("d-apu", hw.apu_power, "W"); setB("d-apuB", (hw.apu_power||0)/54);
+    setV("d-gt", hw.gpu_temp, "°C"); setB("d-gtB", (hw.gpu_temp||0)/100);
+    setV("d-gclk", hw.gpu_clk, "MHz"); setB("d-gclkB", (hw.gpu_clk||0)/2600);
+    setV("d-gl", hw.gpu_load, "%"); setB("d-glB", (hw.gpu_load||0)/100);
+    setV("d-gw", hw.gpu_power, "W"); setB("d-gwB", (hw.gpu_power||0)/40);
+    $("d-ram").innerHTML = `${fmt(hw.ram_used,1)}<small>/ ${fmt(hw.ram_total,1)} GB · ${fmt(hw.ram_load)}%</small>`; setB("d-ramB", (hw.ram_load||0)/100);
+    $("d-rclk").innerHTML = hw.ram ? `${hw.ram.speed}<small>MT/s ${hw.ram.type}</small>` : "--"; setB("d-rclkB", hw.ram ? hw.ram.speed/5600 : 0);
+    setV("d-st", hw.soc_temp, "°C"); setB("d-stB", (hw.soc_temp||0)/100);
+    setV("d-sclk", hw.soc_clk, "MHz"); setB("d-sclkB", (hw.soc_clk||0)/1500);
+    const rz = S.ryzen || {};
+    const pair = (id, v, lim, unit) => { $(id).innerHTML = lim==null ? "--" : `${fmt(v,1)}<small>/ ${fmt(lim)} ${unit}</small>`; setB(id+"B", lim ? (v||0)/lim : 0); };
+    pair("r-stv", rz["STAPM VALUE"], rz["STAPM LIMIT"], "W");
+    pair("r-fast", rz["PPT VALUE FAST"], rz["PPT LIMIT FAST"], "W");
+    pair("r-slow", rz["PPT VALUE SLOW"], rz["PPT LIMIT SLOW"], "W");
+    pair("r-thm", rz["THM VALUE CORE"], rz["THM LIMIT CORE"], "°C");
+  }
+
+  if (page === "batt") {
+    const hist = S.history || [];
+    const maxW = Math.max(60, ...hist.map(p=>Math.abs(p.w)));
+    chart($("cBatt"), [{data:hist.map(p=>p.p), color:"#2fd07a"}, {data:hist.map(p=>Math.abs(p.w)*100/maxW), color:"#ffb020", fill:false}], {max:100, unit:"%"});
+    const h = S.health || {};
+    const rows = [
+      ["الشركة / الطراز", h.id || "--"], ["النوع", h.chem === "LION" ? "ليثيوم أيون" : (h.chem||"--")],
+      ["السعة الأصلية", h.design ? (h.design/1000).toFixed(1)+" Wh" : "--"], ["السعة الحالية الكاملة", h.full ? (h.full/1000).toFixed(1)+" Wh" : "--"],
+      ["صحة البطارية", h.design ? (100*h.full/h.design).toFixed(0)+"%" : "--"], ["عدد دورات الشحن", h.cycles_est != null ? h.cycles_est.toFixed(1) : (h.cycles ?? "--")],
+      ["الطاقة المتبقية", s.remaining ? (s.remaining/1000).toFixed(1)+" Wh" : "--"], ["الجهد", s.voltage ? (s.voltage/1000).toFixed(2)+" V" : "--"],
+      ["الاستهلاك", s.discharge ? (s.discharge/1000).toFixed(1)+" W" : "0 W"],
+    ];
+    renderLife(h);
+    $("battKv").innerHTML = rows.map(([k,v])=>`<span>${k}</span><b class="num">${esc(v)}</b>`).join("");
+    $("chState").textContent = online ? (charging ? "يشحن" : (pct>=99 ? "مكتملة" : "موصول بدون شحن")) : "غير موصول";
+    const cw = s.charge/1000;
+    setV("chW", charging ? cw : 0, "W", 1);
+    $("chType").textContent = !charging ? "--" : cw >= 45 ? "⚡ شحن سريع" : cw >= 20 ? "شحن عادي" : "شحن بطيء";
+    $("chType").style.color = !charging ? "" : cw >= 45 ? "var(--green)" : cw >= 20 ? "var(--text)" : "var(--amber)";
+  }
+
+  if (page === "proc") renderProcs();
+  if (page === "ovl") renderOverlay();
+
+  if (page === "set") {
+    const c = S.config || {};
+    $("acSel").value = c.adaptive_ac || "performance";
+    if (document.activeElement !== $("lowR")) { $("lowR").value = c.adaptive_low ?? 40; $("lowV").textContent = ($("lowR").value) + "%"; }
+    $("startSw").classList.toggle("on", !!S.startup);
+    $("ver").textContent = S.version || "--";
+    $("chAlertSw").classList.toggle("on", c.charge_alert !== false);
+    if (document.activeElement !== $("chAlertR")) { $("chAlertR").value = c.charge_alert_pct ?? 80; $("chAlertV").textContent = $("chAlertR").value + "%"; }
+    $("chAlertR").disabled = c.charge_alert === false;
+    $("tdpSw").classList.toggle("on", !!c.tdp_enabled);
+    $("tdpRows").style.opacity = c.tdp_enabled && S.admin ? 1 : .4;
+    document.querySelectorAll("#tdpRows [data-t]").forEach(r => {
+      if (document.activeElement !== r) r.value = c.tdp?.[r.dataset.t] ?? 35;
+      r.disabled = !(c.tdp_enabled && S.admin);
+      $("tv-" + r.dataset.t).textContent = r.value + "W";
+    });
+    if (!S.admin) $("tdpNote").textContent = "التحكم بالواط يحتاج صلاحيات مدير: شغّل «تفعيل صلاحيات المدير.bat» مرة وحدة.";
+    const P = S.presets || {};
+    const ov = {efficiency:"أفضل كفاءة طاقة", balanced:"متوازن", performance:"أفضل أداء"};
+    const bst = ["مطفأ","مفعّل","قوي (Aggressive)"];
+    $("presetKv").innerHTML = ["eco","balanced","performance"].map(k => P[k] ? `<span>${NAMES[k]}</span><b>وضع ويندوز: ${ov[P[k].overlay]} · حد المعالج ${P[k].max}% · Boost ${bst[P[k].boost]} · EPP ${P[k].epp}</b>` : "").join("");
+  }
+}
+
+const dur = h => { if (h == null || !isFinite(h)) return "--"; const H = Math.floor(h), M = Math.round((h-H)*60); return H ? `${H} ساعة${M ? " و " + M + " د" : ""}` : `${M} دقيقة`; };
+function ageText(days){
+  if (days == null) return "--";
+  const y = Math.floor(days/365), m = Math.floor((days%365)/30.4);
+  if (y && m) return `${y === 1 ? "سنة" : y + " سنوات"} و ${m === 1 ? "شهر" : m + " أشهر"}`;
+  if (y) return y === 1 ? "سنة" : `${y} سنوات`;
+  return m ? (m === 1 ? "شهر" : `${m} أشهر`) : `${days} يوم`;
+}
+function renderLife(h){
+  if (h.cycles_est == null) return;
+  $("cyc").innerHTML = `${h.cycles_est.toFixed(1)}<small>/ ${h.rated_cycles}</small>`;
+  setB("cycB", h.cycles_est / h.rated_cycles);
+  $("cycSub").textContent = `~${h.cycles_per_month} دورة بالشهر`;
+  $("age").textContent = ageText(h.age_days);
+  $("ageSub").textContent = "أول استخدام: " + h.first_use;
+  const runtime = h.runtime_win_h || (h.avg_dc_w ? h.full/1000/h.avg_dc_w : null);
+  $("runFull").textContent = dur(runtime);
+  $("runSub").textContent = h.avg_dc_w ? `متوسط استهلاكك ${h.avg_dc_w}W على البطارية` : "تقدير ويندوز";
+  const left = Math.min(h.years_left ?? 99, h.calendar_years_left ?? 99);
+  const lt = +left.toFixed(1), ltxt = Number.isInteger(lt) ? lt : lt.toFixed(1);
+  $("lifeLeft").textContent = left >= 99 ? "--" : `~${ltxt} ${lt >= 3 && lt <= 10 ? "سنوات" : "سنة"}`;
+  $("lifeSub").textContent = (h.calendar_years_left ?? 99) <= (h.years_left ?? 99)
+    ? "يحدّه عمر الليثيوم الزمني (~5 سنوات)" : `حسب ${h.rated_cycles} دورة لين 80%`;
+  const kv = [
+    ["إجمالي الطاقة المسحوبة", `${h.drained_wh} Wh`],
+    ["ساعات الاستخدام على البطارية", `${Math.round(h.dc_hours)} ساعة`],
+    ["ساعات الاستخدام على الشاحن", `${Math.round(h.ac_hours)} ساعة`],
+    ["ساعات السكون على البطارية", `${Math.round(h.standby_dc_hours)} ساعة`],
+    ["مدة السكون بالشحنة الكاملة", h.standby_win_h ? `${Math.round(h.standby_win_h/24)} يوم` : "--"],
+    ["الدورات تكفي حسب استخدامك", h.years_left != null ? `${Math.round(h.years_left)} سنة` : "--"],
+  ];
+  $("lifeKv").innerHTML = kv.map(([k,v]) => `<span>${k}</span><b dir="${/[؀-ۿ]/.test(v) ? "rtl" : "ltr"}" style="text-align:left">${esc(v)}</b>`).join("");
+  const note = $("lifeNote");
+  if (h.capacity_static && !note.querySelector(".extra")) note.insertAdjacentHTML("beforeend", `<span class="extra"> </span>`);
+  if (h.capacity_static) note.querySelector(".extra").textContent = " ملاحظة: البطارية تبلّغ عن نفس السعة (100%) من أول يوم، فقراءة الصحة ممكن ما تعكس التآكل الحقيقي. عدد الدورات والعمر أدق مقياس هنا.";
+  monthBars($("cMonths"), h.months || []);
+}
+function monthBars(canvas, months){
+  const dpr = window.devicePixelRatio||1, w = canvas.clientWidth, hgt = canvas.clientHeight;
+  if (!w) return;
+  canvas.width = w*dpr; canvas.height = hgt*dpr;
+  const c = canvas.getContext("2d"); c.scale(dpr,dpr); c.direction = "ltr";
+  const pad = {l:34,r:8,t:8,b:22}, W = w-pad.l-pad.r, H = hgt-pad.t-pad.b;
+  const max = Math.max(10, ...months.map(m => m.dc + m.ac));
+  c.font = "11px Segoe UI"; c.fillStyle = "#5d6470"; c.strokeStyle = "#22252c";
+  for (let i=0;i<=4;i++){ const y = pad.t + H*i/4; c.beginPath(); c.moveTo(pad.l,y); c.lineTo(w-pad.r,y); c.stroke(); c.textAlign="left"; c.fillText(Math.round(max*(1-i/4))+"h", 2, y+4); }
+  const n = months.length, slot = W / Math.max(n,1), bw = Math.min(28, slot*0.6);
+  months.forEach((m, i) => {
+    const x = pad.l + slot*i + (slot-bw)/2;
+    const hd = H*m.dc/max, ha = H*m.ac/max;
+    c.fillStyle = "#3a3f4a"; c.fillRect(x, pad.t+H-hd-ha, bw, ha);
+    c.fillStyle = "#ed1c24"; c.fillRect(x, pad.t+H-hd, bw, hd);
+    c.fillStyle = "#8a919e"; c.textAlign = "center"; c.fillText(m.m.slice(5) + "/" + m.m.slice(2,4), x + bw/2, hgt-6);
+  });
+}
+
+/* ---------- overlay page ---------- */
+const OV_GROUPS = {
+  cpu: {n:"المعالج", c:"#ff4d55", f:{temp:"الحرارة", load:"الضغط", clock:"التردد", power:"الواط"}},
+  gpu: {n:"كرت الشاشة", c:"#3aa0ff", f:{temp:"الحرارة", load:"الضغط", clock:"التردد", power:"الواط"}},
+  ram: {n:"الرام", c:"#2fd07a", f:{used:"المستخدم", load:"النسبة"}},
+  bat: {n:"البطارية", c:"#ffb020", f:{pct:"النسبة", watts:"الواط", time:"الوقت المتبقي"}},
+  pwr: {n:"الطاقة", c:"#c084fc", f:{mode:"الوضع الحالي", tdp:"حد الواط", apu:"استهلاك الشريحة"}},
+  sys: {n:"أخرى", c:"#8a919e", f:{time:"الساعة"}},
+};
+let OV = null, ovBusy = false;
+async function ovSave(patch){
+  ovBusy = true;
+  if (OV) Object.assign(OV, patch);   // instant preview
+  renderOverlay(true);
+  await post("/api/overlay", patch);
+  ovBusy = false;
+  renderOverlay();                    // fresh tiles + saved settings
+}
+async function renderOverlay(force){
+  if (!force && !ovBusy) {
+    try {
+      const d = await (await fetch("/api/overlay")).json();
+      const cfg = (await (await fetch("/api/state")).json()).config?.overlay || {};
+      OV = {...cfg, ...d};
+    } catch {}
+  }
+  if (!OV) return;
+  const items = OV.items || {};
+  $("ovSw").classList.toggle("on", !!OV.enabled);
+  if (document.activeElement !== $("ovOp")) { $("ovOp").value = OV.opacity; $("ovOpV").textContent = OV.opacity + "%"; }
+  if (document.activeElement !== $("ovSc")) { $("ovSc").value = OV.scale; $("ovScV").textContent = OV.scale + "%"; }
+  document.querySelectorAll("#ovLay button").forEach(b => b.classList.toggle("on", b.dataset.l === OV.layout));
+  document.querySelectorAll("#ovTheme button").forEach(b => b.classList.toggle("on", b.dataset.t === OV.theme));
+  $("ovTop").checked = OV.topmost !== false; $("ovSnap").checked = !!OV.snap; $("ovLock").checked = !!OV.lock;
+  $("ovAuto").checked = OV.auto_color !== false; $("ovCustom").checked = !!OV.custom_colors;
+  if (document.activeElement !== $("ovColV")) { $("ovColV").value = OV.color_value || "#ffffff"; }
+  if (document.activeElement !== $("ovColL")) { $("ovColL").value = OV.color_label || "#e8ebed"; }
+  $("ovColVt").textContent = $("ovColV").value.toUpperCase(); $("ovColLt").textContent = $("ovColL").value.toUpperCase();
+  document.querySelectorAll(".colrow").forEach(r => r.style.opacity = OV.custom_colors ? 1 : .4);
+  document.querySelectorAll("#posGrid button").forEach(b => b.style.borderColor = b.dataset.pos === OV.pos ? "rgba(237,28,36,.7)" : "");
+
+  // groups (build once)
+  if (!$("ovGroups").dataset.built) {
+    $("ovGroups").innerHTML = Object.entries(OV_GROUPS).map(([g, G]) =>
+      `<div class="card"><div class="gtitle"><i style="background:${G.c}"></i>${G.n}</div><div class="chips">` +
+      Object.entries(G.f).map(([f, n]) => `<button class="chip" data-g="${g}" data-f="${f}">${n}</button>`).join("") + `</div></div>`).join("");
+    $("ovGroups").dataset.built = 1;
+  }
+  document.querySelectorAll("#ovGroups .chip").forEach(c => c.classList.toggle("on", (items[c.dataset.g] || []).includes(c.dataset.f)));
+
+  // live preview (same tiles the real window draws)
+  const p = $("ovPrev"), s = (OV.scale || 100) / 100 * 0.8, light = OV.theme === "light", a = (OV.opacity || 0) / 100;
+  p.className = "ov" + (OV.layout === "vertical" ? " v" : "");
+  p.style.setProperty("--ovline", light ? `rgba(0,0,0,${a/2+.1})` : `rgba(255,255,255,${a/3+.1})`);
+  p.style.background = light ? `rgba(241,243,246,${a})` : `rgba(18,19,23,${a})`;
+  p.style.border = `1px solid ${light ? `rgba(0,0,0,${a/2+.1})` : `rgba(255,255,255,${a/3+.1})`}`;
+  p.style.opacity = OV.enabled ? 1 : .5;
+  const shadow = a < .7 ? (light ? "1px 1px 0 rgba(255,255,255,.6)" : "1px 1px 0 rgba(0,0,0,.75)") : "none";
+  p.innerHTML = (OV.tiles || []).map(t => `<div class="tl"><div class="tv" style="color:${t.c};text-shadow:${shadow}">${esc(t.v)}<small style="color:${OV.label_color}">${esc(t.u)}</small></div>` +
+    `<div class="tlb" style="color:${OV.label_color};text-shadow:${shadow}">${esc(t.l)}</div></div>`).join("")
+    || `<div class="tl"><div class="tlb" style="color:#8a919e;font-size:10px">اختر قراءة وحدة على الأقل</div></div>`;
+  const pos = OV.pos || "tc", m = 6;
+  p.style.left = p.style.right = p.style.top = p.style.bottom = "";
+  let tx = "";
+  if (pos === "custom" && OV.x != null) {
+    // map real screen coords to the mock screen
+    const sw = screen.width * devicePixelRatio, sh = screen.height * devicePixelRatio;
+    p.style.left = Math.max(0, Math.min(92, OV.x / sw * 100)) + "%";
+    p.style.top = Math.max(0, Math.min(85, OV.y / sh * 100)) + "%";
+    p.style.transformOrigin = "top left";
+  } else {
+    p.style.transformOrigin = (pos[0] === "t" ? "top " : "bottom ") + (pos[1] === "l" ? "left" : pos[1] === "r" ? "right" : "center");
+    if (pos[0] === "t") p.style.top = m + "px"; else p.style.bottom = `calc(7% + ${m}px)`;
+    if (pos[1] === "l") p.style.left = m + "px";
+    else if (pos[1] === "r") p.style.right = m + "px";
+    else { p.style.left = "50%"; tx = "translateX(-50%) "; }
+  }
+  p.style.transform = tx + `scale(${s})`;
+}
+$("ovTheme").onclick = e => { const b = e.target.closest("[data-t]"); if (b) ovSave({theme: b.dataset.t}); };
+$("ovTop").onchange = () => ovSave({topmost: $("ovTop").checked});
+$("ovSnap").onchange = () => ovSave({snap: $("ovSnap").checked});
+$("ovLock").onchange = () => { ovSave({lock: $("ovLock").checked}); toast($("ovLock").checked ? "مقفولة: الماوس يعدّي من خلالها" : "تقدر تسحبها بالماوس الحين"); };
+$("ovAuto").onchange = () => ovSave({auto_color: $("ovAuto").checked});
+$("ovCustom").onchange = () => ovSave({custom_colors: $("ovCustom").checked});
+$("ovColV").onchange = () => ovSave({color_value: $("ovColV").value, custom_colors: true});
+$("ovColL").onchange = () => ovSave({color_label: $("ovColL").value, custom_colors: true});
+$("ovReset").onclick = () => ovSave({custom_colors: false, color_value: "#ffffff", color_label: "#e8ebed", auto_color: true});
+$("ovSw").onclick = async () => { await ovSave({enabled: !OV?.enabled}); toast(OV.enabled ? "الشاشة العائمة ظاهرة" : "الشاشة العائمة مخفية"); };
+$("posGrid").onclick = e => { const b = e.target.closest("[data-pos]"); if (b) ovSave({pos: b.dataset.pos}); };
+$("ovOp").oninput = () => { $("ovOpV").textContent = $("ovOp").value + "%"; if (OV) { OV.opacity = +$("ovOp").value; renderOverlay(true); } };
+$("ovOp").onchange = () => ovSave({opacity: +$("ovOp").value});
+$("ovSc").oninput = () => { $("ovScV").textContent = $("ovSc").value + "%"; if (OV) { OV.scale = +$("ovSc").value; renderOverlay(true); } };
+$("ovSc").onchange = () => ovSave({scale: +$("ovSc").value});
+$("ovLay").onclick = e => { const b = e.target.closest("[data-l]"); if (b) ovSave({layout: b.dataset.l}); };
+$("ovGroups").onclick = e => {
+  const c = e.target.closest(".chip"); if (!c) return;
+  const items = JSON.parse(JSON.stringify(OV.items || S.config.overlay.items));
+  const arr = items[c.dataset.g] ||= [];
+  const i = arr.indexOf(c.dataset.f);
+  if (i >= 0) arr.splice(i, 1); else arr.push(c.dataset.f);
+  // keep the field order stable
+  arr.sort((a, b) => Object.keys(OV_GROUPS[c.dataset.g].f).indexOf(a) - Object.keys(OV_GROUPS[c.dataset.g].f).indexOf(b));
+  ovSave({items});
+};
+
+function renderProcs(){
+  const q = $("q").value.trim().toLowerCase();
+  const groups = {};
+  for (const p of (S.sample?.procs || [])) {
+    const g = groups[p.name] ??= {name:p.name, pids:[], cpu:0, mem:0, win:false, title:"", desc:"", co:""};
+    g.pids.push(p.pid); g.cpu += p.cpu; g.mem += p.mem;
+    if (p.win) { g.win = true; g.title = g.title || p.title; }
+    g.desc = g.desc || p.desc; g.co = g.co || p.co;
+  }
+  let list = Object.values(groups).map(g => ({...g, n:g.pids.length}));
+  if (pfilter === "bg") list = list.filter(g => !g.win);
+  if (pfilter === "win") list = list.filter(g => g.win);
+  if (q) list = list.filter(g => (g.name+" "+g.desc+" "+g.title).toLowerCase().includes(q));
+  list.sort((a,b) => (psort==="name" ? a.name.localeCompare(b.name) : a[psort]-b[psort]) * pdir);
+  $("procCount").textContent = list.length + " برنامج";
+  $("ptb").innerHTML = list.slice(0, 150).map(g => {
+    const imp = g.cpu >= 8 ? ["h","عالي"] : g.cpu >= 1.5 || g.mem > 800 ? ["m","متوسط"] : ["l","منخفض"];
+    const prot = PROTECTED.has(g.name.toLowerCase());
+    const label = g.desc || g.name;
+    return `<tr>
+      <td><div class="pname"><div class="pic" style="background:hsl(${hue(g.name)} 45% 32%)">${esc(g.name.slice(0,2).toUpperCase())}</div>
+        <div style="min-width:0"><b title="${esc(label)}">${esc(label)}</b><small>${esc(g.name)}.exe${g.co ? " · "+esc(g.co) : ""}${g.win && g.title ? " · "+esc(g.title) : ""}</small></div></div></td>
+      <td class="num kind">${g.n}</td>
+      <td class="num">${g.cpu.toFixed(1)}%</td>
+      <td class="num">${g.mem >= 1024 ? (g.mem/1024).toFixed(2)+" GB" : g.mem.toFixed(0)+" MB"}</td>
+      <td><span class="impact ${imp[0]}">${imp[1]}</span></td>
+      <td><button class="btn" data-kill="${esc(g.name)}" ${prot ? "disabled title='برنامج نظام محمي'" : ""}>إنهاء</button></td></tr>`;
+  }).join("");
+}
+
+$("pf").onclick = e => { const b = e.target.closest("button"); if (!b) return; pfilter = b.dataset.f; document.querySelectorAll("#pf button").forEach(x=>x.classList.toggle("on", x===b)); renderProcs(); };
+$("q").oninput = renderProcs;
+document.querySelector("#p-proc thead").onclick = e => {
+  const th = e.target.closest("th[data-s]"); if (!th) return;
+  if (psort === th.dataset.s) pdir *= -1; else { psort = th.dataset.s; pdir = th.dataset.s==="name" ? 1 : -1; }
+  document.querySelectorAll("#p-proc th").forEach(x => { x.classList.toggle("sorted", x===th); x.textContent = x.textContent.replace(/ [▾▴]$/,""); });
+  th.textContent += pdir < 0 ? " ▾" : " ▴"; renderProcs();
+};
+$("ptb").onclick = async e => {
+  const b = e.target.closest("[data-kill]"); if (!b) return;
+  const name = b.dataset.kill;
+  const pids = (S.sample?.procs || []).filter(p => p.name === name).map(p => p.pid);
+  if (!await confirmBox(`إنهاء ${name}؟`, `بيتم إغلاق ${pids.length} عملية لهذا البرنامج. أي شغل غير محفوظ فيه ممكن يضيع.`)) return;
+  const r = await post("/api/kill", {pids, force:true});
+  toast(r.ok ? `تم إنهاء ${name}` : `ما قدرت أنهي ${name} (يمكن يحتاج صلاحيات مدير)`);
+  setTimeout(refresh, 800);
+};
+
+/* ---------- settings ---------- */
+$("acSel").onchange = async () => { await post("/api/mode", {mode:S.mode, adaptive_ac:$("acSel").value}); toast("تم الحفظ"); refresh(); };
+$("lowR").oninput = () => $("lowV").textContent = $("lowR").value + "%";
+$("lowR").onchange = async () => { await post("/api/mode", {mode:S.mode, adaptive_low:+$("lowR").value}); toast("تم الحفظ"); refresh(); };
+$("restartBtn").onclick = async () => {
+  await post("/api/restart", {});
+  toast("يعيد التشغيل…");
+  setTimeout(() => location.reload(), 4000);
+};
+$("chAlertSw").onclick = async () => { const on = S.config.charge_alert === false; await post("/api/alerts", {charge_alert:on}); toast(on ? "تم تفعيل إشعار الشحن" : "تم إيقاف إشعار الشحن"); refresh(); };
+$("chAlertR").oninput = () => $("chAlertV").textContent = $("chAlertR").value + "%";
+$("chAlertR").onchange = async () => { await post("/api/alerts", {charge_alert_pct:+$("chAlertR").value}); toast(`الإشعار عند ${$("chAlertR").value}%`); refresh(); };
+$("testAlert").onclick = async () => { const r = await post("/api/test-alert", {}); toast(r.ok ? "شوف الإشعار جنب الساعة" : "أيقونة الشريط مو شغالة"); };
+$("tdpSw").onclick = async () => { const on = !S.config.tdp_enabled; await post("/api/tdp", {enabled:on}); toast(on ? "تم تفعيل التحكم بالواط" : "رجع حد المصنع 35W"); refresh(); };
+document.querySelectorAll("#tdpRows [data-t]").forEach(r => {
+  r.oninput = () => $("tv-" + r.dataset.t).textContent = r.value + "W";
+  r.onchange = async () => { const res = await post("/api/tdp", {tdp:{[r.dataset.t]: +r.value}}); toast(res.ok ? `حد ${NAMES[r.dataset.t]}: ${r.value}W` : "ما قدرت أطبّق الواط"); refresh(); };
+});
+$("startSw").onclick = async () => { const r = await post("/api/startup", {enabled: !S.startup}); toast(r.startup ? "بيشتغل مع ويندوز" : "ما راح يشتغل مع ويندوز"); refresh(); };
+async function quit(){ if (await confirmBox("إيقاف RX16 Control Center؟", "الوضع المتكيّف بيوقف لين تشغّل البرنامج مرة ثانية. وضع الطاقة الحالي بيبقى زي ما هو.", "إيقاف")) { await post("/api/quit", {}); window.close(); } }
+$("quitBtn").onclick = quit; $("quit2").onclick = quit;
+
+/* ---------- loop ---------- */
+async function refresh(){
+  try {
+    S = await (await fetch(page === "proc" ? "/api/state?procs=1" : "/api/state")).json();
+    const sl = S.config?.lang;   // the saved setting wins (it also drives the tray + overlay)
+    if (sl && sl !== LANG && !langPending) { LANG = sl; try { localStorage.setItem("rx16-lang", sl); } catch {} applyLang(); }
+    render();
+  }
+  catch { $("pwrTxt").textContent = "الخدمة متوقفة"; $("pwrDot").className = "dot r"; }
+}
+refresh(); setInterval(() => { if (!document.hidden) refresh(); }, 2000);
+window.onresize = render;
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Build outputs - recreated by source\build.ps1 and source\build-setup.ps1
+/dist/
+/RX16 Control Center.exe
+/app/rx16.ico
+
+# Runtime leftovers
+__pycache__/
+*.pyc
+*.log
+ryzenadj-test.txt
