@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -77,9 +78,22 @@ class Updater:
                 self.info.update({"status": "idle", "error": str(e)[:200], "checked_at": int(time.time())})
         return self.state()
 
+    @staticmethod
+    def folder():
+        return os.path.join(tempfile.gettempdir(), "rx16-update")
+
+    def cleanup(self):
+        """Delete the setup downloaded for the last update. Runs a minute after start (the setup that
+        restarted us has closed by then) and before every check; skipped while an update is running."""
+        with self.lock:
+            busy = self.info["status"] in ("downloading", "installing")
+        if not busy and os.path.isdir(self.folder()):
+            shutil.rmtree(self.folder(), ignore_errors=True)
+
     def loop(self):
         time.sleep(60)
         while True:
+            self.cleanup()
             self.check()
             time.sleep(6 * 3600)
 
@@ -99,7 +113,7 @@ class Updater:
 
     def _install(self, url, sha):
         try:
-            folder = os.path.join(tempfile.gettempdir(), "rx16-update")
+            folder = self.folder()
             os.makedirs(folder, exist_ok=True)
             path = os.path.join(folder, "RX16-Setup.exe")
             h = hashlib.sha256()
