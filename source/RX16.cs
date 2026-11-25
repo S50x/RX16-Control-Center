@@ -22,8 +22,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Battery, sensors and power modes for the ACEMAGIC RX16")]
 [assembly: AssemblyCompany("RX16")]
 [assembly: AssemblyCopyright("RX16")]
-[assembly: AssemblyVersion("1.4.8.0")]
-[assembly: AssemblyFileVersion("1.4.8.0")]
+[assembly: AssemblyVersion("1.4.9.0")]
+[assembly: AssemblyFileVersion("1.4.9.0")]
 
 static class RX16
 {
@@ -200,7 +200,7 @@ static class RX16
     static readonly List<ToolStripMenuItem> modeItems = new List<ToolStripMenuItem>();
     static string lang = "ar";
     static ContextMenuStrip menu;
-    static ToolStripItem miOpen, miRestart, miQuit;
+    static ToolStripItem miOpen, miRestart, miQuit, miUpdate;
 
     static string T(string ar, string en) { return lang == "en" ? en : ar; }
 
@@ -274,6 +274,7 @@ static class RX16
             menu.Items.Add(item);
         }
         menu.Items.Add(new ToolStripSeparator());
+        miUpdate = menu.Items.Add("", null, (s, e) => CheckUpdates());
         miRestart = menu.Items.Add("", null, (s, e) => Post("/api/restart"));
         miQuit = menu.Items.Add("", null, (s, e) => { quitting = true; Post("/api/quit"); Quit(); });
         menu.Opening += (s, e) => { foreach (var it in modeItems) it.Checked = ((string[])it.Tag)[0] == currentMode; };
@@ -291,6 +292,7 @@ static class RX16
         menu.RightToLeft = lang == "en" ? RightToLeft.No : RightToLeft.Yes;
         miOpen.Text = T("فتح RX16 Control Center", "Open RX16 Control Center");
         foreach (var it in modeItems) { var m = (string[])it.Tag; it.Text = lang == "en" ? m[2] : m[1]; }
+        miUpdate.Text = T("تحقق من التحديثات", "Check for updates");
         miRestart.Text = T("إعادة تشغيل البرنامج", "Restart app");
         miQuit.Text = T("إيقاف البرنامج", "Quit app");
     }
@@ -324,6 +326,36 @@ static class RX16
         overlayBusy = false;
         if (body == null) { overlay.HideOverlay(); return; }
         try { overlay.Apply(Json.Deserialize<Dictionary<string, object>>(body)); } catch { }
+    }
+
+    // Tray menu: ask the service to check GitHub now and say the result in a balloon
+    // (clicking the balloon opens the window, where "Update now" lives in Settings).
+    static void CheckUpdates()
+    {
+        new Thread(() =>
+        {
+            string body = null;
+            try
+            {
+                var req = (HttpWebRequest)WebRequest.Create(Api + "/api/update/check");
+                req.Method = "POST"; req.ContentType = "application/json"; req.Timeout = 30000; req.Proxy = null;
+                var b = Encoding.UTF8.GetBytes("{}");
+                using (var st = req.GetRequestStream()) st.Write(b, 0, b.Length);
+                using (var resp = req.GetResponse())
+                using (var rd = new StreamReader(resp.GetResponseStream(), Encoding.UTF8)) body = rd.ReadToEnd();
+            }
+            catch { }
+            Dictionary<string, object> u = null;
+            try { if (body != null) u = Json.Deserialize<Dictionary<string, object>>(body); } catch { }
+            string title, text; ToolTipIcon icon = ToolTipIcon.Info;
+            if (u == null || S(u, "error").Length > 0)
+            { title = T("ما قدرت أتحقق", "Couldn't check"); text = u == null ? T("الخدمة ما ردّت.", "The service didn't answer.") : S(u, "error"); icon = ToolTipIcon.Warning; }
+            else if (S(u, "available") == "True")
+            { title = T("تحديث جديد: ", "Update available: ") + S(u, "latest"); text = T("اضغط هنا ← الإعدادات ← «تحديث الحين».", "Click here → Settings → “Update now”."); }
+            else
+            { title = T("عندك آخر إصدار", "You're up to date"); text = "RX16 Control Center " + S(u, "current"); }
+            ui.BeginInvoke(new Action(() => tray.ShowBalloonTip(6000, title, text, icon)));
+        }) { IsBackground = true }.Start();
     }
 
     static string S(Dictionary<string, object> d, string k) { object v; return d.TryGetValue(k, out v) && v != null ? v.ToString() : ""; }
