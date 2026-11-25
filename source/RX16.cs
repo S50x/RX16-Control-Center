@@ -22,8 +22,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Battery, sensors and power modes for the ACEMAGIC RX16")]
 [assembly: AssemblyCompany("RX16")]
 [assembly: AssemblyCopyright("RX16")]
-[assembly: AssemblyVersion("1.4.4.0")]
-[assembly: AssemblyFileVersion("1.4.4.0")]
+[assembly: AssemblyVersion("1.4.5.0")]
+[assembly: AssemblyFileVersion("1.4.5.0")]
 
 static class RX16
 {
@@ -207,6 +207,31 @@ static class RX16
     // Windows 11 puts new tray icons in the hidden (^) area. Pin ours next to the clock the first time only:
     // Windows records each icon under HKCU\Control Panel\NotifyIconSettings\<id> (ExecutablePath, IsPromoted).
     // If IsPromoted already exists the user has chosen (pinned or hidden it) - leave it alone.
+    [DllImport("shell32.dll")] static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out IntPtr path);
+
+    // Windows stores tray paths under known folders as "{KNOWNFOLDERID}\rest", e.g. Program Files =
+    // "{6D809377-6AF0-444B-8957-A3773F02200E}\RX16 Control Center\RX16 Control Center.exe".
+    static string ExpandKnownFolder(string p)
+    {
+        if (string.IsNullOrEmpty(p)) return null;
+        try
+        {
+            if (p.StartsWith("{") && p.IndexOf("}\\", StringComparison.Ordinal) > 0)
+            {
+                int end = p.IndexOf('}');
+                IntPtr raw;
+                if (SHGetKnownFolderPath(new Guid(p.Substring(1, end - 1)), 0, IntPtr.Zero, out raw) == 0)
+                {
+                    string folder = Marshal.PtrToStringUni(raw);
+                    Marshal.FreeCoTaskMem(raw);
+                    p = Path.Combine(folder, p.Substring(end + 2));
+                }
+            }
+            return Path.GetFullPath(p);
+        }
+        catch { return null; }
+    }
+
     static void StartTrayPin()
     {
         int tries = 0;
@@ -222,8 +247,8 @@ static class RX16
                         foreach (var name in root.GetSubKeyNames())
                             using (var k = root.OpenSubKey(name, true))
                             {
-                                var path = k == null ? null : k.GetValue("ExecutablePath") as string;
-                                if (path == null || !string.Equals(Path.GetFullPath(path), Path.GetFullPath(Application.ExecutablePath),
+                                var path = ExpandKnownFolder(k == null ? null : k.GetValue("ExecutablePath") as string);
+                                if (path == null || !string.Equals(path, Path.GetFullPath(Application.ExecutablePath),
                                                                    StringComparison.OrdinalIgnoreCase)) continue;
                                 if (k.GetValue("IsPromoted") == null) k.SetValue("IsPromoted", 1, Microsoft.Win32.RegistryValueKind.DWord);
                                 done = true;

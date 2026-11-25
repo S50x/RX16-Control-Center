@@ -24,7 +24,7 @@ sys.dont_write_bytecode = True   # keep the app folder clean (no __pycache__)
 
 # Versioning rule (owner's request): every update adds 1 to the LAST digit; after 9 it rolls over
 # to the next digit, e.g. 1.3.8 -> 1.3.9 -> 1.4.0 ... 1.9.9 -> 2.0.0
-VERSION = "1.4.4"
+VERSION = "1.4.5"
 HOST, PORT = "127.0.0.1", 47816
 BASE = os.path.dirname(os.path.abspath(__file__))
 CFG_DIR = os.path.join(os.environ.get("APPDATA", BASE), "X16Power")
